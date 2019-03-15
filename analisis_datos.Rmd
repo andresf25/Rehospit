@@ -97,7 +97,6 @@ head(data_rehosp_s)
 ```
 Variables numéricas (11):
 
-* <b>edad:</b> Edad del asegurado en el momento de la hospitalizacion
 * <b>marcas:</b> Cantidad de marcas confirmadas del asegurado
 * <b>dias_hosp1:</b> Dias de hospitalizacion
 * <b>dias_uci1:</b> Numero dias en uci
@@ -112,6 +111,7 @@ Variables numéricas (11):
 
 Variables nominales (13):
 
+* <b>edad:</b> Edad del asegurado en el momento de la hospitalizacion
 * <b>estrato:</b> Estrato Vivienda (0,1,2,3,4,5,6,-1)
 * <b>ingreso:</b> Rango de ingresos
 * <b>estado_civil:</b> Estado civil (C,D,S,U,V,-1)
