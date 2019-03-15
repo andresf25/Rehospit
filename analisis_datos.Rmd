@@ -10,7 +10,7 @@ El objetivo es desarrollar e implementar un modelo de predicción de rehospitali
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 rm(list = ls())
 library(readxl) #lectura de archivo excel
-library(dplyr) #procesamiento de datos
+library(dplyr) #procesamiento de datos 
 library(ggplot2) # visualizacion graficos
 library(ggcorrplot)
 library(VIM) # visualizacion y analisis datos perdidos
@@ -70,8 +70,13 @@ data_rehosp_s %>%
          pago_diag2 = Valor_Pagado_Diagnostico_rehosp,
          rehosp_oms1 = rehosp_cat_oms,
          rehosp_oms2 = rehosp_subcat_oms) %>%
+<<<<<<< HEAD
   mutate(quirur1 = ifelse(quirur1 == 1, 'Si', 'No'),
          quirur2 = ifelse(quirur2 == 1, 'Si', 'No'),
+=======
+  mutate(quirur1 = ifelse(quirur1 == 1, 'Si','No'),
+         quirur2 = ifelse(quirur2 == 1, 'Si','No'),
+>>>>>>> 7a95f5fd7c574f5dce3b398aed2513147751a0f0
          rehosp_oms1 = ifelse(rehosp_oms1 == 1, 'Si','No') ,
          rehosp_oms2 = ifelse(rehosp_oms2 == 1, 'Si','No') ,
          rehosp_dane = ifelse(rehosp_dane == 1, 'Si','No') ,
