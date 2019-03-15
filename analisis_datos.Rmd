@@ -221,7 +221,7 @@ ggplot(data=data_rehosp_s,
 ```
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 data_rehosp_s %>% 
-  group_by(rehosp_oms1, estrato) %>%
+  group_by(rehosp_oms1, estrato) %>%   
   summarize(frec = n()) %>%
   ggplot(., aes(x = estrato, fill = estrato, y = frec)) +
   geom_bar(stat = "identity") +
