@@ -72,9 +72,9 @@ data_rehosp_s %>%
          rehosp_oms2 = rehosp_subcat_oms) %>%
   mutate(quirur1 = ifelse(quirur1 == 1, 'Si', 'No'),
          quirur2 = ifelse(quirur2 == 1, 'Si', 'No'),
-         rehosp_oms1 = ifelse(rehosp_oms1 == 1, 'Si', 'No') ,
-         rehosp_oms2 = ifelse(rehosp_oms2 == 1, 'Si', 'No') ,
-         rehosp_dane = ifelse(rehosp_dane == 1, 'Si', 'No') ,
+         rehosp_oms1 = ifelse(rehosp_oms1 == 1, 'Si','No') ,
+         rehosp_oms2 = ifelse(rehosp_oms2 == 1, 'Si','No') ,
+         rehosp_dane = ifelse(rehosp_dane == 1, 'Si','No') ,
          estrato = ifelse(estrato == -1 | estrato == 0, NA, estrato),
          ingreso = as.factor(ingreso),
          est_civil = as.factor(est_civil),
