@@ -70,16 +70,11 @@ data_rehosp_s %>%
          pago_diag2 = Valor_Pagado_Diagnostico_rehosp,
          rehosp_oms1 = rehosp_cat_oms,
          rehosp_oms2 = rehosp_subcat_oms) %>%
-<<<<<<< HEAD
   mutate(quirur1 = ifelse(quirur1 == 1, 'Si', 'No'),
          quirur2 = ifelse(quirur2 == 1, 'Si', 'No'),
-=======
-  mutate(quirur1 = ifelse(quirur1 == 1, 'Si','No'),
-         quirur2 = ifelse(quirur2 == 1, 'Si','No'),
->>>>>>> 7a95f5fd7c574f5dce3b398aed2513147751a0f0
-         rehosp_oms1 = ifelse(rehosp_oms1 == 1, 'Si','No') ,
-         rehosp_oms2 = ifelse(rehosp_oms2 == 1, 'Si','No') ,
-         rehosp_dane = ifelse(rehosp_dane == 1, 'Si','No') ,
+         rehosp_oms1 = ifelse(rehosp_oms1 == 1, 'Si','No'),
+         rehosp_oms2 = ifelse(rehosp_oms2 == 1, 'Si','No'),
+         rehosp_dane = ifelse(rehosp_dane == 1, 'Si','No'),
          estrato = ifelse(estrato == -1 | estrato == 0, NA, estrato),
          ingreso = as.factor(ingreso),
          est_civil = as.factor(est_civil),
@@ -92,7 +87,8 @@ data_rehosp_s %>%
          quirur1 = as.factor(quirur1),
          rehosp_oms1 = as.factor(rehosp_oms1),
          rehosp_oms2 = as.factor(rehosp_oms2),
-         rehosp_dane = as.factor(rehosp_dane) ) -> data_rehosp_s
+         rehosp_dane = as.factor(rehosp_dane),
+         estrato = as.factor(estrato)) -> data_rehosp_s
 head(data_rehosp_s)
 ```
 Variables numéricas (11):
@@ -150,8 +146,6 @@ aggr(data_rehosp_s,
 
 Para corroborar que los datos no faltan al azar, se realiza un grafico de correlación que nos ayude a verificar lo anterior. Para ello, construimos un dataframe que indique si el campo está vacio (1) o no (0); con esta información seleccionamos sólo aquellas columnas que tienen algunos (no todos) sus registros nulos y finalmente creamos la matrix de correlación.
 
-Esta matrix a un nivel de significancia del 5% comprueba nuestra hipótesis inicial de no aleatoriedad.
-
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 matrix_miss <- as.data.frame(abs(is.na(data_rehosp_s)))
 only_miss <- matrix_miss[,sapply(matrix_miss, sd) > 0]
@@ -167,6 +161,19 @@ ggcorrplot(corr_miss,
            lab = TRUE,
            colors = c("#99CCFF", "white", "#0066CC")) + 
   labs(title = "Correlacion entre datos perdidos por columna")
+```
+
+Dado que con la anterior matrix a un nivel de significancia del 5% se comprobó la hipótesis inicial de no aleatoriedad, se procede a construir una tercera categoría para cada una de las variables que posee campos vacíos.
+
+```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
+data_rehosp_s %>%
+  mutate(estrato = ifelse(is.na(estrato), "Sin Informacion", estrato),
+         est_civil = ifelse(is.na(est_civil), "Sin Informacion", est_civil),
+         ingreso = ifelse(is.na(ingreso), "Sin Informacion", ingreso),
+         estrato = as.factor(estrato),
+         est_civil = as.factor(est_civil),
+         ingreso = as.factor(ingreso)) -> data_rehosp_s
+head(data_rehosp_s)
 ```
 
 #Boxplot
