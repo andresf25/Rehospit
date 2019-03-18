@@ -256,6 +256,7 @@ Con el objetivo de enriquecer el análisis exploratorio, se calcularán dos medi
 <br><h4>Análisis de clasificación binaria usando WOE y el IV</h4>
 El peso de la evidencia (WOE) y el valor de la información (IV) ayudan, entre otras cosas, a determinar la contribución independiente de cada variable al resultado, y detectar relaciones lineales y no lineales. El WOE mide la relación entre la variable predictiva y el objeto binario, mientras que el IV mide la fuerza predictiva de esa relación.
 
+
 ```{r}
 data_rehosp_s <- data_rehosp_s %>%
   mutate(id = 1:nrow(.)) 
