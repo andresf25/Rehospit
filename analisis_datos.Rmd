@@ -46,7 +46,9 @@ data_rehosp_s %>%
          -Fecha_Egreso_ReHosp, 
          -Estado_Egreso, 
          -Estado_Egreso_rehosp,
-         -Rehospitalizacion) %>%
+         -Rehospitalizacion,
+         -rehosp_dane,
+         -rehosp_subcat_oms) %>%
   rename(edad = Edad_Hospitalizacion, 
          estrato = Estrato_Vivienda,
          ingreso = Rango_Ingresos_Desc,
@@ -68,13 +70,9 @@ data_rehosp_s %>%
          dias_uci2 = Numero_Dias_Uci_rehosp,
          dias_uce2 = Numero_Dias_Uce_rehosp,
          pago_diag2 = Valor_Pagado_Diagnostico_rehosp,
-         rehosp_oms1 = rehosp_cat_oms,
-         rehosp_oms2 = rehosp_subcat_oms) %>%
+         rehosp_oms1 = rehosp_cat_oms) %>%
   mutate(quirur1 = ifelse(quirur1 == 1, 'Si', 'No'),
          quirur2 = ifelse(quirur2 == 1, 'Si', 'No'),
-         rehosp_oms1 = ifelse(rehosp_oms1 == 1, 'Si', 'No'),
-         rehosp_oms2 = ifelse(rehosp_oms2 == 1, 'Si', 'No'),
-         rehosp_dane = ifelse(rehosp_dane == 1, 'Si', 'No'),
          edad = case_when( edad <= 30 ~ "18-30",
                                  edad >= 31 & edad <= 40 ~ "31-40",
                                  edad >= 31 & edad <= 40 ~ "31-40",
@@ -84,8 +82,6 @@ data_rehosp_s %>%
                                  edad >= 71 & edad <= 80 ~ "71-80",
                                  edad >= 81 ~ "81+"),
          estrato = ifelse(estrato == -1 | estrato == 0, NA, estrato),
-         #ingreso = as.factor(ingreso),
-         #est_civil = as.factor(est_civil),
          ramo = as.factor(ramo),
          genero = as.factor(genero),
          diag1 = as.factor(diag1),
@@ -93,10 +89,6 @@ data_rehosp_s %>%
          ciudad = as.factor(ciudad),
          quirur2 = as.factor(quirur2),
          quirur1 = as.factor(quirur1),
-         rehosp_oms1 = as.factor(rehosp_oms1),
-         rehosp_oms2 = as.factor(rehosp_oms2),
-         rehosp_dane = as.factor(rehosp_dane),
-         #estrato = as.factor(estrato),
          edad = as.factor(edad)) -> data_rehosp_s
 head(data_rehosp_s)
 ```
@@ -340,16 +332,6 @@ ggplot(data_rehosp_s, aes(x = ramo)) +
   ggtitle("Distribución Ramo") +
   theme(plot.title = element_text(hjust = 0.5)) + scale_fill_brewer(palette = "Paired")
 
-ggplot(data_rehosp_s, aes(x = ciudad)) +
-  geom_bar(aes(fill = rehosp_oms1),
-           na.rm = TRUE) +
-  theme_minimal() +
-  labs(x = "Ciudad", 
-       y = "Frecuencia", 
-       fill = "Rehospitalización") +
-  ggtitle("Distribución Ciudad") +
-  theme(plot.title = element_text(hjust = 0.5)) + scale_fill_brewer(palette = "Paired")+ theme(axis.text.x = element_text(angle = 90, size = 5))
-
 ggplot(data_rehosp_s, aes(x = quirur1)) +
   geom_bar(aes(fill = rehosp_oms1),
            na.rm = TRUE) +
@@ -371,3 +353,58 @@ ggplot(data_rehosp_s, aes(x = quirur2)) +
   ggtitle("Distribución Proc Quirurgico rehosp") +
   theme(plot.title = element_text(hjust = 0.5)) + scale_fill_brewer(palette = "Paired")
 ```
+
+Con el objetivo de enriquecer el análisis exploratorio, se calcularán dos medidas muy comúnes de la teoría de la información, éstas permiten inferir algo del poder predictivo que pueden tener las variables independientes, antes de hacer parte de un modelo.
+
+<br><h4>Análisis de clasificación binaria usando WOE y el IV</h4>
+El peso de la evidencia (WOE) y el valor de la información (IV) ayudan, entre otras cosas, a determinar la contribución independiente de cada variable al resultado, y detectar relaciones lineales y no lineales. El WOE mide la relación entre la variable predictiva y el objeto binario, mientras que el IV mide la fuerza predictiva de esa relación.
+
+```{r}
+data_rehosp_s <- data_rehosp_s %>%
+  mutate(id = 1:nrow(.)) 
+
+data_rehosp_s %>%
+  sample_frac(size = .70) %>%
+  select(-diag1, 
+         -diag2) -> train
+
+data_rehosp_s %>%
+  anti_join(x = .,
+            y = train, 
+            by = "id") %>%
+  select(-diag1, 
+         -diag2) -> test
+
+train <- select(.data = train, -id)
+test <- select(.data = test, -id)
+
+IV <- create_infotables(data = train,
+                   valid = test,
+                   y = "rehosp_oms1")
+
+
+kable_styling(kable(IV$Summary), 
+              position = "center", 
+              row_label_position = 1,
+              full_width = F)
+```
+
+```{r}
+kable_styling(kable(IV$Tables$pago_diag1), 
+              position = "center", 
+              row_label_position = 1,
+              full_width = F)
+```
+
+```{r}
+n <- names(IV$Tables)
+for (i in 1:length(n)){
+   plot_infotables(IV, n[i])}
+
+MultiPlot(IV, IV$Summary$Variable[1:9])
+```
+
+```{r}
+MultiPlot(IV, IV$Summary$Variable[10:18])
+```
+
