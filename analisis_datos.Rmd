@@ -231,26 +231,12 @@ ggplot(data=data_rehosp_s,
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_color_manual(values = c("#99CCFF", "#0066CC"))
 ```
-```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
-data_rehosp_s %>% 
-  group_by(rehosp_oms1, estrato) %>%   
-  summarize(frec = n()) %>%
-  ggplot(., aes(x = estrato, fill = estrato, y = frec)) +
-  geom_bar(stat = "identity") +
-  facet_wrap(~ rehosp_oms1) +
-  theme_minimal() +
-  xlab("Estrato") + 
-  ylab("Frecuencia") +
-  ggtitle("Distribución Estrato") +
-  theme(plot.title = element_text(hjust = 0.5), legend.position = "none")
-  
-```
+
 #Otra manera
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 data_rehosp_s %>% 
   ggplot(., aes(x = estrato)) +
-  geom_bar(aes(fill = rehosp_oms1),
-           position = position_dodge(), 
+  geom_bar(aes(fill = rehosp_oms1), 
            na.rm = TRUE) +
   theme_minimal() +
   labs(x = "Estrato", 
