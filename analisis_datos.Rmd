@@ -124,9 +124,9 @@ Variables nominales (13):
 * <b>ramo:</b> Ramo al que pertenece el asegurado
 * <b>ciudad:</b> Ciudad de contacto del asegurado
 * <b>diag1:</b> Codigo Diagnostico cie10 de la atencion
-* <b>quirurgico1:</b> Si tuvo algun tipo de servicio relacionado a procedimiento quirurgico
+* <b>quirur1:</b> Si tuvo algun tipo de servicio relacionado a procedimiento quirurgico
 * <b>diag2:</b> Codigo Diagnostico cie10 de la rehospitalizacion
-* <b>quirurgico2:</b> Si tuvo algun tipo de servicio relacionado a procedimiento quirurgico
+* <b>quirur2:</b> Si tuvo algun tipo de servicio relacionado a procedimiento quirurgico
 * <b>rehosp_dane:</b> Similitud tabla mortalidad dane
 * <b>rehosp_cat_oms:</b> Similitud categoria cie10
 * <b>rehosp_subcat_oms:</b> Similitud subcategoria cie10 </br>
@@ -350,16 +350,25 @@ ggplot(data_rehosp_s, aes(x = ciudad)) +
   ggtitle("Distribución Ciudad") +
   theme(plot.title = element_text(hjust = 0.5)) + scale_fill_brewer(palette = "Paired")+ theme(axis.text.x = element_text(angle = 90, size = 5))
 
-#* <b>edad:</b> Edad del asegurado en el momento de la hospitalizacion
-#* <b>estrato:</b> Estrato Vivienda (0,1,2,3,4,5,6,-1)
-#* <b>ingreso:</b> Rango de ingresos
-#* <b>estado_civil:</b> Estado civil (C,D,S,U,V,-1)
-#* <b>genero:</b> Genero del asegurado (M,F)
-#* <b>ramo:</b> Ramo al que pertenece el asegurado
-#* <b>ciudad:</b> Ciudad de contacto del asegurado
-#* <b>diag1:</b> Codigo Diagnostico cie10 de la atencion
-#* <b>quirurgico1:</b> Si tuvo algun tipo de servicio relacionado a procedimiento #quirurgico
-#* <b>diag2:</b> Codigo Diagnostico cie10 de la rehospitalizacion
-#* <b>quirurgico2:</b> Si tuvo algun tipo de servicio relacionado a procedimiento quirurgico
+ggplot(data_rehosp_s, aes(x = quirur1)) +
+  geom_bar(aes(fill = rehosp_oms1),
+           na.rm = TRUE) +
+  theme_minimal() +
+  labs(x = "Proc Quirurgico", 
+       y = "Frecuencia", 
+       fill = "Rehospitalización") +
+  ggtitle("Distribución Proc Quirurgico") +
+  theme(plot.title = element_text(hjust = 0.5)) + scale_fill_brewer(palette = "Paired")
+
+
+ggplot(data_rehosp_s, aes(x = quirur2)) +
+  geom_bar(aes(fill = rehosp_oms1),
+           na.rm = TRUE) +
+  theme_minimal() +
+  labs(x = "Proc Quirurgico rehosp", 
+       y = "Frecuencia", 
+       fill = "Rehospitalización") +
+  ggtitle("Distribución Proc Quirurgico rehosp") +
+  theme(plot.title = element_text(hjust = 0.5)) + scale_fill_brewer(palette = "Paired")
 
 ```
