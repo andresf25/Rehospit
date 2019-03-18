@@ -192,23 +192,26 @@ head(data_rehosp_s2)
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 ggplot(
   data_rehosp_s, 
-       aes(x = rehosp_oms1, 
-           y=marcas, 
-           color=rehosp_oms1)) +
+  aes(x = rehosp_oms1, 
+      y=marcas, 
+      color=as.factor(rehosp_oms1),
+      shape=as.factor(rehosp_oms1))) +
   geom_boxplot() + 
   labs(title="Marcas por rehosp",
        x="Rehosp", 
-       y = "Marcas") + 
+       y = "Marcas",
+       fill = "Rehospitalización") + 
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5), 
         legend.position = "none") + 
-  scale_colour_brewer(palette="Paired")
+  scale_colour_brewer(palette="Paired") 
 
 ggplot(
   data_rehosp_s, 
   aes(x=rehosp_oms1, 
       y=dias_hosp1,
-      color=rehosp_oms1)) +
+      color=as.factor(rehosp_oms1),
+      shape=as.factor(rehosp_oms1))) +
   geom_boxplot() + 
   labs(title="Dias hospit1 por rehosp",
        x="Rehosp", 
@@ -221,7 +224,8 @@ ggplot(
   data_rehosp_s, 
   aes(x=rehosp_oms1, 
       y=dias_uci1,
-      color=rehosp_oms1)) +
+      color=as.factor(rehosp_oms1),
+      shape=as.factor(rehosp_oms1))) +
   geom_boxplot() + 
   labs(title="Dias uci1 por rehosp",
        x="Rehosp", 
@@ -234,7 +238,8 @@ ggplot(
   data_rehosp_s, 
   aes(x=rehosp_oms1, 
       y=dias_uce1,
-      color=rehosp_oms1)) +
+      color=as.factor(rehosp_oms1),
+      shape=as.factor(rehosp_oms1))) +
   geom_boxplot() + 
   labs(title="Dias uce1 por rehosp",
        x="Rehosp", 
@@ -247,7 +252,8 @@ ggplot(
   data_rehosp_s, 
   aes(x=rehosp_oms1, 
       y=pago_diag1,
-      color=rehosp_oms1)) +
+      color=as.factor(rehosp_oms1),
+      shape=as.factor(rehosp_oms1))) +
   geom_boxplot() + 
   labs(title="Pago diag1 por rehosp",
        x="Rehosp", 
@@ -260,11 +266,12 @@ ggplot(
   data_rehosp_s, 
   aes(x=rehosp_oms1, 
       y=sig_hosp,
-      color=rehosp_oms1)) +
+      color=as.factor(rehosp_oms1),
+      shape=as.factor(rehosp_oms1))) +
   geom_boxplot() + 
   labs(title="Dias sig hosp por rehosp",
        x="Rehosp", 
-       y = "dias sig hosp")  + 
+       y = "Dias sig hosp")  + 
   theme_minimal() + 
   theme(plot.title = element_text(hjust = 0.5),legend.position = "none") + 
   scale_colour_brewer( palette="Paired")
@@ -273,7 +280,7 @@ ggplot(
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
 ggplot(data_rehosp_s, aes(x = edad)) +
-  geom_bar(aes(fill = rehosp_oms1),
+  geom_bar(aes(fill = as.factor(rehosp_oms1)),
            na.rm = TRUE) +
   theme_minimal() +
   labs(x = "Edad", 
@@ -283,7 +290,7 @@ ggplot(data_rehosp_s, aes(x = edad)) +
   theme(plot.title = element_text(hjust = 0.5)) + scale_fill_brewer(palette = "Paired")
 
 ggplot(data = data_rehosp_s, aes(x = estrato)) +
-  geom_bar(aes(fill = rehosp_oms1),
+  geom_bar(aes(fill = as.factor(rehosp_oms1)),
            na.rm = TRUE) +
   theme_minimal() +
   labs(x = "Estrato", 
@@ -293,7 +300,7 @@ ggplot(data = data_rehosp_s, aes(x = estrato)) +
   theme(plot.title = element_text(hjust = 0.5)) + scale_fill_brewer(palette = "Paired")
 
 ggplot(data_rehosp_s, aes(x = ingreso)) +
-  geom_bar(aes(fill = rehosp_oms1),
+  geom_bar(aes(fill = as.factor(rehosp_oms1)),
            na.rm = TRUE) +
   theme_minimal() +
   labs(x = "Ingreso", 
@@ -303,7 +310,7 @@ ggplot(data_rehosp_s, aes(x = ingreso)) +
   theme(plot.title = element_text(hjust = 0.5)) + scale_fill_brewer(palette = "Paired") + theme(axis.text.x = element_text(angle = 90))
 
 ggplot(data_rehosp_s, aes(x = est_civil)) +
-  geom_bar(aes(fill = rehosp_oms1),
+  geom_bar(aes(fill = as.factor(rehosp_oms1)),
            na.rm = TRUE) +
   theme_minimal() +
   labs(x = "Estado civil", 
@@ -313,7 +320,7 @@ ggplot(data_rehosp_s, aes(x = est_civil)) +
   theme(plot.title = element_text(hjust = 0.5)) + scale_fill_brewer(palette = "Paired")
 
 ggplot(data_rehosp_s, aes(x = genero)) +
-  geom_bar(aes(fill = rehosp_oms1),
+  geom_bar(aes(fill = as.factor(rehosp_oms1)),
            na.rm = TRUE) +
   theme_minimal() +
   labs(x = "Genero", 
@@ -323,7 +330,7 @@ ggplot(data_rehosp_s, aes(x = genero)) +
   theme(plot.title = element_text(hjust = 0.5)) + scale_fill_brewer(palette = "Paired")
 
 ggplot(data_rehosp_s, aes(x = ramo)) +
-  geom_bar(aes(fill = rehosp_oms1),
+  geom_bar(aes(fill = as.factor(rehosp_oms1)),
            na.rm = TRUE) +
   theme_minimal() +
   labs(x = "Ramo", 
@@ -333,7 +340,7 @@ ggplot(data_rehosp_s, aes(x = ramo)) +
   theme(plot.title = element_text(hjust = 0.5)) + scale_fill_brewer(palette = "Paired")
 
 ggplot(data_rehosp_s, aes(x = quirur1)) +
-  geom_bar(aes(fill = rehosp_oms1),
+  geom_bar(aes(fill = as.factor(rehosp_oms1)),
            na.rm = TRUE) +
   theme_minimal() +
   labs(x = "Proc Quirurgico", 
@@ -344,7 +351,7 @@ ggplot(data_rehosp_s, aes(x = quirur1)) +
 
 
 ggplot(data_rehosp_s, aes(x = quirur2)) +
-  geom_bar(aes(fill = rehosp_oms1),
+  geom_bar(aes(fill = as.factor(rehosp_oms1)),
            na.rm = TRUE) +
   theme_minimal() +
   labs(x = "Proc Quirurgico rehosp", 
