@@ -370,5 +370,4 @@ ggplot(data_rehosp_s, aes(x = quirur2)) +
        fill = "Rehospitalización") +
   ggtitle("Distribución Proc Quirurgico rehosp") +
   theme(plot.title = element_text(hjust = 0.5)) + scale_fill_brewer(palette = "Paired")
-
 ```
