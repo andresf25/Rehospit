@@ -75,17 +75,17 @@ data_rehosp_s %>%
          rehosp_oms1 = ifelse(rehosp_oms1 == 1, 'Si', 'No'),
          rehosp_oms2 = ifelse(rehosp_oms2 == 1, 'Si', 'No'),
          rehosp_dane = ifelse(rehosp_dane == 1, 'Si', 'No'),
-         edad_grupo = case_when( edad <= 30 ~ "18-30",
+         edad = case_when( edad <= 30 ~ "18-30",
                                  edad >= 31 & edad <= 40 ~ "31-40",
                                  edad >= 31 & edad <= 40 ~ "31-40",
                                  edad >= 41 & edad <= 50 ~ "41-50",
                                  edad >= 51 & edad <= 60 ~ "51-60",
                                  edad >= 61 & edad <= 70 ~ "61-70",
                                  edad >= 71 & edad <= 80 ~ "71-80",
-                                 edad >= 81 ~ "81-"),
+                                 edad >= 81 ~ "81+"),
          estrato = ifelse(estrato == -1 | estrato == 0, NA, estrato),
-         ingreso = as.factor(ingreso),
-         est_civil = as.factor(est_civil),
+         #ingreso = as.factor(ingreso),
+         #est_civil = as.factor(est_civil),
          ramo = as.factor(ramo),
          genero = as.factor(genero),
          diag1 = as.factor(diag1),
@@ -96,8 +96,8 @@ data_rehosp_s %>%
          rehosp_oms1 = as.factor(rehosp_oms1),
          rehosp_oms2 = as.factor(rehosp_oms2),
          rehosp_dane = as.factor(rehosp_dane),
-         estrato = as.factor(estrato),
-         edad_grupo = as.factor(edad_grupo)) -> data_rehosp_s
+         #estrato = as.factor(estrato),
+         edad = as.factor(edad)) -> data_rehosp_s
 head(data_rehosp_s)
 ```
 Variables numéricas (11):
@@ -119,7 +119,7 @@ Variables nominales (13):
 * <b>edad:</b> Edad del asegurado en el momento de la hospitalizacion
 * <b>estrato:</b> Estrato Vivienda (0,1,2,3,4,5,6,-1)
 * <b>ingreso:</b> Rango de ingresos
-* <b>estado_civil:</b> Estado civil (C,D,S,U,V,-1)
+* <b>est_civil:</b> Estado civil (C,D,S,U,V,-1)
 * <b>genero:</b> Genero del asegurado (M,F)
 * <b>ramo:</b> Ramo al que pertenece el asegurado
 * <b>ciudad:</b> Ciudad de contacto del asegurado
@@ -181,8 +181,8 @@ data_rehosp_s %>%
          ingreso = ifelse(is.na(ingreso), "Sin Informacion", ingreso),
          estrato = as.factor(estrato),
          est_civil = as.factor(est_civil),
-         ingreso = as.factor(ingreso)) -> data_rehosp_s
-head(data_rehosp_s)
+         ingreso = as.factor(ingreso)) -> data_rehosp_s2
+head(data_rehosp_s2)
 ```
 
 * <b>marcas:</b> Cantidad de marcas confirmadas del asegurado
@@ -238,7 +238,8 @@ ggplot(
   theme(plot.title = element_text(hjust = 0.5),legend.position = "none") + 
   scale_colour_brewer( palette="Paired")
 
-ggplot(  data_rehosp_s, 
+ggplot(
+  data_rehosp_s, 
   aes(x=rehosp_oms1, 
       y=dias_uce1,
       color=rehosp_oms1)) +
@@ -250,7 +251,8 @@ ggplot(  data_rehosp_s,
   theme(plot.title = element_text(hjust = 0.5),legend.position = "none") + 
   scale_colour_brewer( palette="Paired")
 
-ggplot(  data_rehosp_s, 
+ggplot(
+  data_rehosp_s, 
   aes(x=rehosp_oms1, 
       y=pago_diag1,
       color=rehosp_oms1)) +
@@ -277,50 +279,19 @@ ggplot(
 ```
 #Histogramas
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
-data_rehosp_s %>%
-  group_by(rehosp_oms1)%>%
-  summarise(prom_edad = mean(edad)) -> mean_edad
 
-ggplot(data=data_rehosp_s, 
-       aes(data_rehosp_s$edad, 
-           color=rehosp_oms1)) + 
-  geom_histogram(breaks=seq(18, 100, by = 4), 
-                 alpha = .2,
-                 fill="white",
-                 position = "identity",
-                 size=0.8) + 
-  geom_vline(data = mean_edad, 
-             aes(xintercept=prom_edad, 
-                 color=rehosp_oms1),
-             linetype="dashed") +
-  labs(title="Histograma por Edad", 
-       x="Edad", 
-       y="Frecuencia") + 
-  theme_minimal() + 
-  theme(plot.title = element_text(hjust = 0.5)) +
-  scale_color_manual(values = c("#99CCFF", "#0066CC"))
-```
-
-```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
-data_rehosp_s %>% 
-  group_by(rehosp_oms1, estrato) %>%   
-  summarize(frec = n()) %>%
-  ggplot(., aes(x = estrato, fill = estrato, y = frec)) +
-  geom_bar(stat = "identity") +
-  facet_wrap(~ rehosp_oms1) +
-  theme_minimal() +
-  xlab("Estrato") + 
-  ylab("Frecuencia") +
-  ggtitle("Distribución Estrato") +
-  theme(plot.title = element_text(hjust = 0.5), legend.position = "none")
-  
-```
-#Otra manera
-```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
-data_rehosp_s %>% 
-  ggplot(., aes(x = estrato)) +
+ggplot(data_rehosp_s, aes(x = edad)) +
   geom_bar(aes(fill = rehosp_oms1),
-           position = position_dodge(), 
+           na.rm = TRUE) +
+  theme_minimal() +
+  labs(x = "Edad", 
+       y = "Frecuencia", 
+       fill = "Rehospitalización") +
+  ggtitle("Distribución Edad Grupo") +
+  theme(plot.title = element_text(hjust = 0.5)) + scale_fill_brewer(palette = "Paired")
+
+ggplot(data = data_rehosp_s, aes(x = estrato)) +
+  geom_bar(aes(fill = rehosp_oms1),
            na.rm = TRUE) +
   theme_minimal() +
   labs(x = "Estrato", 
@@ -328,4 +299,67 @@ data_rehosp_s %>%
        fill = "Rehospitalización") +
   ggtitle("Distribución Estrato") +
   theme(plot.title = element_text(hjust = 0.5)) + scale_fill_brewer(palette = "Paired")
+
+ggplot(data_rehosp_s, aes(x = ingreso)) +
+  geom_bar(aes(fill = rehosp_oms1),
+           na.rm = TRUE) +
+  theme_minimal() +
+  labs(x = "Ingreso", 
+       y = "Frecuencia", 
+       fill = "Rehospitalización") +
+  ggtitle("Distribución Ingreso") +
+  theme(plot.title = element_text(hjust = 0.5)) + scale_fill_brewer(palette = "Paired") + theme(axis.text.x = element_text(angle = 90))
+
+ggplot(data_rehosp_s, aes(x = est_civil)) +
+  geom_bar(aes(fill = rehosp_oms1),
+           na.rm = TRUE) +
+  theme_minimal() +
+  labs(x = "Estado civil", 
+       y = "Frecuencia", 
+       fill = "Rehospitalización") +
+  ggtitle("Distribución Estado civil") +
+  theme(plot.title = element_text(hjust = 0.5)) + scale_fill_brewer(palette = "Paired")
+
+ggplot(data_rehosp_s, aes(x = genero)) +
+  geom_bar(aes(fill = rehosp_oms1),
+           na.rm = TRUE) +
+  theme_minimal() +
+  labs(x = "Genero", 
+       y = "Frecuencia", 
+       fill = "Rehospitalización") +
+  ggtitle("Distribución Genero") +
+  theme(plot.title = element_text(hjust = 0.5)) + scale_fill_brewer(palette = "Paired")
+
+ggplot(data_rehosp_s, aes(x = ramo)) +
+  geom_bar(aes(fill = rehosp_oms1),
+           na.rm = TRUE) +
+  theme_minimal() +
+  labs(x = "Ramo", 
+       y = "Frecuencia", 
+       fill = "Rehospitalización") +
+  ggtitle("Distribución Ramo") +
+  theme(plot.title = element_text(hjust = 0.5)) + scale_fill_brewer(palette = "Paired")
+
+ggplot(data_rehosp_s, aes(x = ciudad)) +
+  geom_bar(aes(fill = rehosp_oms1),
+           na.rm = TRUE) +
+  theme_minimal() +
+  labs(x = "Ciudad", 
+       y = "Frecuencia", 
+       fill = "Rehospitalización") +
+  ggtitle("Distribución Ciudad") +
+  theme(plot.title = element_text(hjust = 0.5)) + scale_fill_brewer(palette = "Paired")+ theme(axis.text.x = element_text(angle = 90, size = 5))
+
+#* <b>edad:</b> Edad del asegurado en el momento de la hospitalizacion
+#* <b>estrato:</b> Estrato Vivienda (0,1,2,3,4,5,6,-1)
+#* <b>ingreso:</b> Rango de ingresos
+#* <b>estado_civil:</b> Estado civil (C,D,S,U,V,-1)
+#* <b>genero:</b> Genero del asegurado (M,F)
+#* <b>ramo:</b> Ramo al que pertenece el asegurado
+#* <b>ciudad:</b> Ciudad de contacto del asegurado
+#* <b>diag1:</b> Codigo Diagnostico cie10 de la atencion
+#* <b>quirurgico1:</b> Si tuvo algun tipo de servicio relacionado a procedimiento #quirurgico
+#* <b>diag2:</b> Codigo Diagnostico cie10 de la rehospitalizacion
+#* <b>quirurgico2:</b> Si tuvo algun tipo de servicio relacionado a procedimiento quirurgico
+
 ```
