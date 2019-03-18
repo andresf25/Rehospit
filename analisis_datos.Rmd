@@ -70,16 +70,19 @@ data_rehosp_s %>%
          pago_diag2 = Valor_Pagado_Diagnostico_rehosp,
          rehosp_oms1 = rehosp_cat_oms,
          rehosp_oms2 = rehosp_subcat_oms) %>%
-<<<<<<< HEAD
   mutate(quirur1 = ifelse(quirur1 == 1, 'Si', 'No'),
          quirur2 = ifelse(quirur2 == 1, 'Si', 'No'),
-=======
-  mutate(quirur1 = ifelse(quirur1 == 1, 'Si','No'),
-         quirur2 = ifelse(quirur2 == 1, 'Si','No'),
->>>>>>> 7a95f5fd7c574f5dce3b398aed2513147751a0f0
-         rehosp_oms1 = ifelse(rehosp_oms1 == 1, 'Si','No') ,
-         rehosp_oms2 = ifelse(rehosp_oms2 == 1, 'Si','No') ,
-         rehosp_dane = ifelse(rehosp_dane == 1, 'Si','No') ,
+         rehosp_oms1 = ifelse(rehosp_oms1 == 1, 'Si', 'No'),
+         rehosp_oms2 = ifelse(rehosp_oms2 == 1, 'Si', 'No'),
+         rehosp_dane = ifelse(rehosp_dane == 1, 'Si', 'No'),
+         edad_grupo = case_when( edad <= 30 ~ "18-30",
+                                 edad >= 31 & edad <= 40 ~ "31-40",
+                                 edad >= 31 & edad <= 40 ~ "31-40",
+                                 edad >= 41 & edad <= 50 ~ "41-50",
+                                 edad >= 51 & edad <= 60 ~ "51-60",
+                                 edad >= 61 & edad <= 70 ~ "61-70",
+                                 edad >= 71 & edad <= 80 ~ "71-80",
+                                 edad >= 81 ~ "81-"),
          estrato = ifelse(estrato == -1 | estrato == 0, NA, estrato),
          ingreso = as.factor(ingreso),
          est_civil = as.factor(est_civil),
@@ -92,7 +95,9 @@ data_rehosp_s %>%
          quirur1 = as.factor(quirur1),
          rehosp_oms1 = as.factor(rehosp_oms1),
          rehosp_oms2 = as.factor(rehosp_oms2),
-         rehosp_dane = as.factor(rehosp_dane) ) -> data_rehosp_s
+         rehosp_dane = as.factor(rehosp_dane),
+         estrato = as.factor(estrato),
+         edad_grupo = as.factor(edad_grupo)) -> data_rehosp_s
 head(data_rehosp_s)
 ```
 Variables numéricas (11):
@@ -102,7 +107,7 @@ Variables numéricas (11):
 * <b>dias_uci1:</b> Numero dias en uci
 * <b>dias_uce1:</b> Numero dias en uce
 * <b>pago_diag1:</b> Valor pagado primera hospitalizacion
-* <b>dias_sig_hosp1:</b> Dias hasta la siguiente hospitalizacion
+* <b>sig_hosp:</b> Dias hasta la siguiente hospitalizacion
 * <b>dias_hosp2:</b> Dias de hospitalizacion
 * <b>dias_uci2:</b> Dias en uci
 * <b>dias_uce2:</b> Dias en uce
@@ -150,8 +155,6 @@ aggr(data_rehosp_s,
 
 Para corroborar que los datos no faltan al azar, se realiza un grafico de correlación que nos ayude a verificar lo anterior. Para ello, construimos un dataframe que indique si el campo está vacio (1) o no (0); con esta información seleccionamos sólo aquellas columnas que tienen algunos (no todos) sus registros nulos y finalmente creamos la matrix de correlación.
 
-Esta matrix a un nivel de significancia del 5% comprueba nuestra hipótesis inicial de no aleatoriedad.
-
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 matrix_miss <- as.data.frame(abs(is.na(data_rehosp_s)))
 only_miss <- matrix_miss[,sapply(matrix_miss, sd) > 0]
@@ -169,17 +172,41 @@ ggcorrplot(corr_miss,
   labs(title = "Correlacion entre datos perdidos por columna")
 ```
 
+Dado que con la anterior matrix a un nivel de significancia del 5% se comprobó la hipótesis inicial de no aleatoriedad, se procede a construir una tercera categoría para cada una de las variables que posee campos vacíos.
+
+```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
+data_rehosp_s %>%
+  mutate(estrato = ifelse(is.na(estrato), "Sin Informacion", estrato),
+         est_civil = ifelse(is.na(est_civil), "Sin Informacion", est_civil),
+         ingreso = ifelse(is.na(ingreso), "Sin Informacion", ingreso),
+         estrato = as.factor(estrato),
+         est_civil = as.factor(est_civil),
+         ingreso = as.factor(ingreso)) -> data_rehosp_s
+head(data_rehosp_s)
+```
+
+* <b>marcas:</b> Cantidad de marcas confirmadas del asegurado
+* <b>dias_hosp1:</b> Dias de hospitalizacion
+* <b>dias_uci1:</b> Numero dias en uci
+* <b>dias_uce1:</b> Numero dias en uce
+* <b>pago_diag1:</b> Valor pagado primera hospitalizacion
+* <b>dias_sig_hosp1:</b> Dias hasta la siguiente hospitalizacion
+* <b>dias_hosp2:</b> Dias de hospitalizacion
+* <b>dias_uci2:</b> Dias en uci
+* <b>dias_uce2:</b> Dias en uce
+* <b>pago_diag2:</b> Valor pagado
+
 #Boxplot
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 ggplot(
   data_rehosp_s, 
        aes(x = rehosp_oms1, 
-           y=edad, 
+           y=marcas, 
            color=rehosp_oms1)) +
   geom_boxplot() + 
-  labs(title="Edad por rehosp",
+  labs(title="Marcas por rehosp",
        x="Rehosp", 
-       y = "Edad") + 
+       y = "Marcas") + 
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5), 
         legend.position = "none") + 
@@ -188,16 +215,65 @@ ggplot(
 ggplot(
   data_rehosp_s, 
   aes(x=rehosp_oms1, 
-      y=dias_hosp2,
+      y=dias_hosp1,
       color=rehosp_oms1)) +
   geom_boxplot() + 
-  labs(title="Dias hospit2 por rehosp",
+  labs(title="Dias hospit1 por rehosp",
        x="Rehosp", 
-       y = "Dias hospit2")  + 
+       y = "Dias hospit1")  + 
   theme_minimal() + 
   theme(plot.title = element_text(hjust = 0.5),legend.position = "none") + 
   scale_colour_brewer( palette="Paired")
 
+ggplot(
+  data_rehosp_s, 
+  aes(x=rehosp_oms1, 
+      y=dias_uci1,
+      color=rehosp_oms1)) +
+  geom_boxplot() + 
+  labs(title="Dias uci1 por rehosp",
+       x="Rehosp", 
+       y = "Dias uci1")  + 
+  theme_minimal() + 
+  theme(plot.title = element_text(hjust = 0.5),legend.position = "none") + 
+  scale_colour_brewer( palette="Paired")
+
+ggplot(  data_rehosp_s, 
+  aes(x=rehosp_oms1, 
+      y=dias_uce1,
+      color=rehosp_oms1)) +
+  geom_boxplot() + 
+  labs(title="Dias uce1 por rehosp",
+       x="Rehosp", 
+       y = "Dias uce1")  + 
+  theme_minimal() + 
+  theme(plot.title = element_text(hjust = 0.5),legend.position = "none") + 
+  scale_colour_brewer( palette="Paired")
+
+ggplot(  data_rehosp_s, 
+  aes(x=rehosp_oms1, 
+      y=pago_diag1,
+      color=rehosp_oms1)) +
+  geom_boxplot() + 
+  labs(title="Pago diag1 por rehosp",
+       x="Rehosp", 
+       y = "Pago diag1")  + 
+  theme_minimal() + 
+  theme(plot.title = element_text(hjust = 0.5),legend.position = "none") + 
+  scale_colour_brewer( palette="Paired")
+
+ggplot(
+  data_rehosp_s, 
+  aes(x=rehosp_oms1, 
+      y=sig_hosp,
+      color=rehosp_oms1)) +
+  geom_boxplot() + 
+  labs(title="Dias sig hosp por rehosp",
+       x="Rehosp", 
+       y = "dias sig hosp")  + 
+  theme_minimal() + 
+  theme(plot.title = element_text(hjust = 0.5),legend.position = "none") + 
+  scale_colour_brewer( palette="Paired")
 ```
 #Histogramas
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
@@ -224,6 +300,7 @@ ggplot(data=data_rehosp_s,
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_color_manual(values = c("#99CCFF", "#0066CC"))
 ```
+
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 data_rehosp_s %>% 
   group_by(rehosp_oms1, estrato) %>%   
