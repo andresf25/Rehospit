@@ -18,6 +18,8 @@ library(RColorBrewer) #paletas de colores
 library(Information) #Extensión del análisis con el uso de la teoría de la información
 library(knitr) #Construcción de tablas
 library(kableExtra) #Construcción de tablas
+library(gridExtra) #Visualización multiples gráficos
+options(scipen=10)
 ```
 <h3>Entendimiento de los Datos</h3>
 
@@ -196,18 +198,67 @@ head(data_rehosp_s2)
 ggplot(
   data_rehosp_s, 
   aes(x = rehosp_oms1, 
-      y=marcas, 
+      y = marcas, 
       color=as.factor(rehosp_oms1),
       shape=as.factor(rehosp_oms1))) +
   geom_boxplot() + 
-  labs(title="Marcas por rehosp",
-       x="Rehosp", 
+  labs(title = "",
+       x="Rehospitalización", 
        y = "Marcas",
        fill = "Rehospitalización") + 
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5), 
         legend.position = "none") + 
-  scale_colour_brewer(palette="Paired") 
+  scale_colour_brewer(palette="Paired") -> p1
+
+ggplot(
+  data_rehosp_s, 
+  aes(x = rehosp_oms1, 
+      y = pago_diag1,
+      color = as.factor(rehosp_oms1),
+      shape = as.factor(rehosp_oms1))) +
+  geom_boxplot() + 
+  labs(title="",
+       x = "Rehospitalizacion", 
+       y = "Pago Diag1")  + 
+  theme_minimal() + 
+  theme(plot.title = element_text(hjust = 0.5),legend.position = "none") + 
+  scale_colour_brewer( palette="Paired") -> p2
+
+ggplot(
+  data_rehosp_s, 
+  aes(x = marcas, 
+      color =  as.factor(rehosp_oms1), 
+      shape = as.factor(rehosp_oms1))) + 
+  geom_density() +
+  labs(title="Total de marcas",
+       x = "", 
+       y = "Frecuencia") +
+  theme_light() + 
+  theme(plot.title = element_text(hjust = 0.5),legend.position = "none") +
+  scale_colour_manual(values = c("#99CCFF", "#0066CC")) -> p3
+
+ggplot(
+  data_rehosp_s, 
+  aes(x = pago_diag1, 
+      color =  as.factor(rehosp_oms1), 
+      shape = as.factor(rehosp_oms1))) + 
+  geom_histogram(alpha = .2,
+                 fill= "white", 
+                 position = "identity",
+                 size = 0.8) + 
+  labs(title = "Pago primer diágnóstico",
+       x = "", 
+       y = "Frecuencia") +
+  theme_light() + 
+  theme(plot.title = element_text(hjust = 0.5),legend.position = "none") +
+  scale_colour_manual(values = c("#99CCFF", "#0066CC")) -> p4
+
+
+grid.arrange(p3, p4, p1, p2, nrow = 2, ncol = 2)
+```
+
+```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
 ggplot(
   data_rehosp_s, 
@@ -216,12 +267,12 @@ ggplot(
       color=as.factor(rehosp_oms1),
       shape=as.factor(rehosp_oms1))) +
   geom_boxplot() + 
-  labs(title="Dias hospit1 por rehosp",
-       x="Rehosp", 
-       y = "Dias hospit1")  + 
+  labs(title="Toatl dias hospitalizado",
+       x="", 
+       y = "Dias hospitalización")  + 
   theme_minimal() + 
   theme(plot.title = element_text(hjust = 0.5),legend.position = "none") + 
-  scale_colour_brewer( palette="Paired")
+  scale_colour_brewer( palette="Paired") -> p3
 
 ggplot(
   data_rehosp_s, 
@@ -230,12 +281,12 @@ ggplot(
       color=as.factor(rehosp_oms1),
       shape=as.factor(rehosp_oms1))) +
   geom_boxplot() + 
-  labs(title="Dias uci1 por rehosp",
-       x="Rehosp", 
-       y = "Dias uci1")  + 
+  labs(title="Total días UCI",
+       x="", 
+       y = "Dias UCI")  + 
   theme_minimal() + 
   theme(plot.title = element_text(hjust = 0.5),legend.position = "none") + 
-  scale_colour_brewer( palette="Paired")
+  scale_colour_brewer( palette="Paired") -> p4
 
 ggplot(
   data_rehosp_s, 
@@ -244,26 +295,14 @@ ggplot(
       color=as.factor(rehosp_oms1),
       shape=as.factor(rehosp_oms1))) +
   geom_boxplot() + 
-  labs(title="Dias uce1 por rehosp",
-       x="Rehosp", 
-       y = "Dias uce1")  + 
+  labs(title="Total días UCE",
+       x="", 
+       y = "Dias UCE")  + 
   theme_minimal() + 
   theme(plot.title = element_text(hjust = 0.5),legend.position = "none") + 
-  scale_colour_brewer( palette="Paired")
+  scale_colour_brewer( palette="Paired") -> p5
 
-ggplot(
-  data_rehosp_s, 
-  aes(x=rehosp_oms1, 
-      y=pago_diag1,
-      color=as.factor(rehosp_oms1),
-      shape=as.factor(rehosp_oms1))) +
-  geom_boxplot() + 
-  labs(title="Pago diag1 por rehosp",
-       x="Rehosp", 
-       y = "Pago diag1")  + 
-  theme_minimal() + 
-  theme(plot.title = element_text(hjust = 0.5),legend.position = "none") + 
-  scale_colour_brewer( palette="Paired")
+
 
 ggplot(
   data_rehosp_s, 
@@ -272,13 +311,19 @@ ggplot(
       color=as.factor(rehosp_oms1),
       shape=as.factor(rehosp_oms1))) +
   geom_boxplot() + 
-  labs(title="Dias sig hosp por rehosp",
-       x="Rehosp", 
+  labs(title="Total días siguientes",
+       x="", 
        y = "Dias sig hosp")  + 
   theme_minimal() + 
   theme(plot.title = element_text(hjust = 0.5),legend.position = "none") + 
-  scale_colour_brewer( palette="Paired")
+  scale_colour_brewer( palette="Paired") -> p6
+
+grid.arrange(p3, p4, p5, p6, 
+             ncol = 2, 
+             nrow = 2)
 ```
+
+
 #Histogramas
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
@@ -370,6 +415,8 @@ Con el objetivo de enriquecer el análisis exploratorio, se calcularán dos medi
 El peso de la evidencia (WOE) y el valor de la información (IV) ayudan, entre otras cosas, a determinar la contribución independiente de cada variable al resultado, y detectar relaciones lineales y no lineales. El WOE mide la relación entre la variable predictiva y el objeto binario, mientras que el IV mide la fuerza predictiva de esa relación.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
+set.seed(1234)
+
 data_rehosp_s <- data_rehosp_s %>%
   mutate(id = 1:nrow(.)) 
 
