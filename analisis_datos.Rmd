@@ -19,6 +19,7 @@ library(Information) #Extensión del análisis con el uso de la teoría de la in
 library(knitr) #Construcción de tablas
 library(kableExtra) #Construcción de tablas
 library(gridExtra) #Visualización multiples gráficos
+library(skimr)
 options(scipen=10)
 ```
 <h3>Entendimiento de los Datos</h3>
@@ -130,7 +131,8 @@ Variables nominales (13):
 
 Generamos estadistica descriptiva de los datos
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
-summary(data_rehosp_s)
+group_by(data_rehosp_s) %>%
+ skim()
 ```
 
 <br><h4>Análisis de Registros Pérdidos</h4>
