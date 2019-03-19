@@ -15,6 +15,9 @@ library(ggplot2) # visualizacion graficos
 library(ggcorrplot)
 library(VIM) # visualizacion y analisis datos perdidos
 library(RColorBrewer) #paletas de colores
+library(Information) #Extensión del análisis con el uso de la teoría de la información
+library(knitr) #Construcción de tablas
+library(kableExtra) #Construcción de tablas
 ```
 <h3>Entendimiento de los Datos</h3>
 
@@ -366,7 +369,7 @@ Con el objetivo de enriquecer el análisis exploratorio, se calcularán dos medi
 <br><h4>Análisis de clasificación binaria usando WOE y el IV</h4>
 El peso de la evidencia (WOE) y el valor de la información (IV) ayudan, entre otras cosas, a determinar la contribución independiente de cada variable al resultado, y detectar relaciones lineales y no lineales. El WOE mide la relación entre la variable predictiva y el objeto binario, mientras que el IV mide la fuerza predictiva de esa relación.
 
-```{r}
+```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 data_rehosp_s <- data_rehosp_s %>%
   mutate(id = 1:nrow(.)) 
 
@@ -396,14 +399,14 @@ kable_styling(kable(IV$Summary),
               full_width = F)
 ```
 
-```{r}
+```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 kable_styling(kable(IV$Tables$pago_diag1), 
               position = "center", 
               row_label_position = 1,
               full_width = F)
 ```
 
-```{r}
+```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 n <- names(IV$Tables)
 for (i in 1:length(n)){
    plot_infotables(IV, n[i])}
@@ -411,7 +414,7 @@ for (i in 1:length(n)){
 MultiPlot(IV, IV$Summary$Variable[1:9])
 ```
 
-```{r}
+```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 MultiPlot(IV, IV$Summary$Variable[10:18])
 ```
 
