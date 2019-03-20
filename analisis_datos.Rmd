@@ -9,17 +9,10 @@ El objetivo es desarrollar e implementar un modelo de predicción de rehospitali
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 rm(list = ls())
-library(readxl) #lectura de archivo excel
-library(dplyr) #procesamiento de datos 
-library(ggplot2) # visualizacion graficos
-library(ggcorrplot)
-library(VIM) # visualizacion y analisis datos perdidos
-library(RColorBrewer) #paletas de colores
-library(Information) #Extensión del análisis con el uso de la teoría de la información
-library(knitr) #Construcción de tablas
-library(kableExtra) #Construcción de tablas
-library(gridExtra) #Visualización multiples gráficos
-library(skimr)
+list.of.packages <- c("readxl", "dplyr", "ggplot2", "ggcorrplot", "VIM", "RColorBrewer", "Information", "knitr", "kableExtra", "gridExtra", "skimr")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+
 options(scipen=10)
 ```
 <h3>Entendimiento de los Datos</h3>
@@ -201,35 +194,29 @@ head(data_rehosp_s2)
 
 #Boxplot
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
-ggplot(
-  data_rehosp_s, 
-  aes(x = rehosp_oms1, 
-      y = marcas, 
-      color=as.factor(rehosp_oms1),
-      shape=as.factor(rehosp_oms1))) +
-  geom_boxplot() + 
-  labs(title = "",
-       x="Rehospitalización", 
-       y = "Marcas",
-       fill = "Rehospitalización") + 
-  theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5), 
-        legend.position = "none") + 
-  scale_colour_brewer(palette="Paired") -> p1
 
-ggplot(
-  data_rehosp_s, 
-  aes(x = rehosp_oms1, 
-      y = pago_diag1,
-      color = as.factor(rehosp_oms1),
-      shape = as.factor(rehosp_oms1))) +
-  geom_boxplot() + 
-  labs(title="",
-       x = "Rehospitalizacion", 
-       y = "Pago Diag1")  + 
-  theme_minimal() + 
-  theme(plot.title = element_text(hjust = 0.5),legend.position = "none") + 
-  scale_colour_brewer( palette="Paired") -> p2
+myboxplot <- function(mydata, myexposure, myoutcome, mytitle, mylabel_x, mylabel_y, my_fill){
+  bp <- ggplot(
+    mydata, 
+    aes(x = as.factor(myexposure), 
+        y = myoutcome,
+        color=as.factor(myexposure))) +
+    geom_boxplot() + 
+    labs(title = mytitle,
+       x= mylabel_x, 
+       y = mylabel_y,
+       fill = my_fill) +
+    theme_minimal() +
+    theme(plot.title = element_text(hjust = 0.5), 
+        legend.position = "none") + 
+  scale_colour_brewer(palette="Paired")
+  return(bp)
+}
+
+p1 <- myboxplot(data_rehosp_s, data_rehosp_s$rehosp_oms1, data_rehosp_s$marcas, "", "Rehospitalización", "Marcas", "Rehospitalización")
+
+p2 <- myboxplot(data_rehosp_s, data_rehosp_s$rehosp_oms1, data_rehosp_s$pago_diag1, "", "Rehospitalización", "Pago Diag1", "")
+
 
 ggplot(
   data_rehosp_s, 
@@ -266,61 +253,13 @@ grid.arrange(p3, p4, p1, p2, nrow = 2, ncol = 2)
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
-ggplot(
-  data_rehosp_s, 
-  aes(x=rehosp_oms1, 
-      y=dias_hosp1,
-      color=as.factor(rehosp_oms1),
-      shape=as.factor(rehosp_oms1))) +
-  geom_boxplot() + 
-  labs(title="Toatl dias hospitalizado",
-       x="", 
-       y = "Dias hospitalización")  + 
-  theme_minimal() + 
-  theme(plot.title = element_text(hjust = 0.5),legend.position = "none") + 
-  scale_colour_brewer( palette="Paired") -> p5
+p5 <- myboxplot(data_rehosp_s, data_rehosp_s$rehosp_oms1, data_rehosp_s$dias_hosp1, "Total dias hospitalizado", "", "Dias hospitalización", "")
 
-ggplot(
-  data_rehosp_s, 
-  aes(x=rehosp_oms1, 
-      y=sig_hosp,
-      color=as.factor(rehosp_oms1),
-      shape=as.factor(rehosp_oms1))) +
-  geom_boxplot() + 
-  labs(title="Total días siguientes",
-       x="", 
-       y = "Dias sig hosp")  + 
-  theme_minimal() + 
-  theme(plot.title = element_text(hjust = 0.5),legend.position = "none") + 
-  scale_colour_brewer( palette="Paired") -> p6
+p6 <- myboxplot(data_rehosp_s, data_rehosp_s$rehosp_oms1, data_rehosp_s$sig_hosp, "Total dias siguientes", "", "Dias sig hosp", "")
 
-ggplot(
-  data_rehosp_s, 
-  aes(x = rehosp_oms1, 
-      y = dias_uce1,
-      color = as.factor(rehosp_oms1),
-      shape = as.factor(rehosp_oms1))) +
-  geom_boxplot() + 
-  labs(title = "Total días UCI",
-       x = "", 
-       y = "Dias UCI")  + 
-  theme_minimal() + 
-  theme(plot.title = element_text(hjust = 0.5),legend.position = "none") + 
-  scale_colour_brewer( palette = "Paired") -> p7
+p7 <- myboxplot(data_rehosp_s, data_rehosp_s$rehosp_oms1, data_rehosp_s$dias_uci1, "Total días UCI", "", "Dias UCI", "")
 
-ggplot(
-  data_rehosp_s, 
-  aes(x = rehosp_oms1, 
-      y = dias_uce1,
-      color = as.factor(rehosp_oms1),
-      shape = as.factor(rehosp_oms1))) +
-  geom_boxplot() + 
-  labs(title = "Total días UCE",
-       x = "", 
-       y = "Dias UCE")  + 
-  theme_minimal() + 
-  theme(plot.title = element_text(hjust = 0.5),legend.position = "none") + 
-  scale_colour_brewer( palette = "Paired") -> p8
+p8 <- myboxplot(data_rehosp_s, data_rehosp_s$rehosp_oms1, data_rehosp_s$dias_uce1, "Total días UCE", "", "Dias UCE", "")
 
 grid.arrange(p5, p6, p7, p8, 
              ncol = 2, 
@@ -328,42 +267,41 @@ grid.arrange(p5, p6, p7, p8,
 ```
 
 #Gráfico Barras
-
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
-ggplot(data_rehosp_s, aes(x = edad)) +
-  geom_bar(aes(fill = as.factor(rehosp_oms1)),
-           na.rm = TRUE) +
-  theme_minimal() +
-  labs(x = "", 
-       y = "Frecuencia", 
-       fill = "Rehospitalización") +
-  ggtitle("Edad") +
-  theme(plot.title = element_text(hjust = 0.5)) + 
-  scale_fill_brewer(palette = "Paired") -> p9
 
-ggplot(data = data_rehosp_s, aes(x = estrato)) +
-  geom_bar(aes(fill = as.factor(rehosp_oms1)),
-           na.rm = TRUE) +
+mygeom_bar <- function(mydata, myexposure, myoutcome, mytitle, mylabel_x, mylabel_y, my_fill, my_angle){
+  bp <- 
+  ggplot(
+    mydata, 
+    aes(x = myexposure)) +
+  geom_bar(
+    aes(fill = as.factor(myoutcome)),
+    na.rm = TRUE) +
   theme_minimal() +
-  labs(x = "", 
-       y = "Frecuencia", 
-       fill = "Rehospitalización") +
-  ggtitle("Estrato") +
-  theme(plot.title = element_text(hjust = 0.5), 
+  labs(x = mylabel_x, 
+       y = mylabel_y, 
+       fill = my_fill) +
+  ggtitle(mytitle) +
+  theme(plot.title = element_text(hjust = 0.5),
         legend.position = "none") + 
-  scale_fill_brewer(palette = "Paired") -> p10
+  scale_fill_brewer(palette = "Paired") + 
+    
+  { # angle
+  if (!is.null(my_angle)) theme(axis.text.x = element_text(angle = my_angle), 
+      legend.position = "none")  } +
+  
+  { # angle
+  if (!is.null(my_angle)) coord_flip() } 
+  
+  return(bp)
+}
 
-ggplot(data_rehosp_s, aes(x = genero)) +
-  geom_bar(aes(fill = as.factor(rehosp_oms1)),
-           na.rm = TRUE) +
-  theme_minimal() +
-  labs(x = "", 
-       y = "Frecuencia", 
-       fill = "Rehospitalización") +
-  ggtitle("Género") +
-  theme(plot.title = element_text(hjust = 0.5), 
-        legend.position = "none") +
-  scale_fill_brewer(palette = "Paired") -> p11
+
+p9 <- mygeom_bar(data_rehosp_s, data_rehosp_s$edad, data_rehosp_s$rehosp_oms1, "Edad", "", "Frecuencia", "Rehospitalización", NULL)
+
+p10 <- mygeom_bar(data_rehosp_s, data_rehosp_s$estrato, data_rehosp_s$rehosp_oms1, "Estrato", "", "Frecuencia", "Rehospitalización", NULL)
+
+p11 <- mygeom_bar(data_rehosp_s, data_rehosp_s$genero, data_rehosp_s$rehosp_oms1, "Género", "", "Frecuencia", "Rehospitalización", NULL)
 
 grid.arrange(p9,                                    
              p10, p11,                               
@@ -374,41 +312,11 @@ grid.arrange(p9,
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
-ggplot(data_rehosp_s, aes(x = ingreso)) +
-  geom_bar(aes(fill = as.factor(rehosp_oms1)),
-           na.rm = TRUE) +
-  theme_minimal() +
-  labs(x = "", 
-       y = "Frecuencia", 
-       fill = "Rehospitalización") +
-  ggtitle("Ingreso") +
-  theme(plot.title = element_text(hjust = 0.5)) + 
-  scale_fill_brewer(palette = "Paired") + 
-  theme(axis.text.x = element_text(angle = 90), 
-        legend.position = "none") + coord_flip() -> p12
+p12 <- mygeom_bar(data_rehosp_s, data_rehosp_s$ingreso, data_rehosp_s$rehosp_oms1, "Ingreso", "", "Frecuencia","Rehospitalización", 90)
 
-ggplot(data_rehosp_s, aes(x = quirur1)) +
-  geom_bar(aes(fill = as.factor(rehosp_oms1)),
-           na.rm = TRUE) +
-  theme_minimal() +
-  labs(x = "", 
-       y = "Frecuencia", 
-       fill = "Rehospitalización") +
-  ggtitle("Proc quirúrgico") +
-  theme(plot.title = element_text(hjust = 0.5)) + 
-  scale_fill_brewer(palette = "Paired") -> p14
+p14 <- mygeom_bar(data_rehosp_s, data_rehosp_s$quirur1, data_rehosp_s$rehosp_oms1, "Proc quirúrgico", "", "Frecuencia", "Rehospitalización", NULL)
 
-ggplot(data_rehosp_s, aes(x = quirur2)) +
-  geom_bar(aes(fill = as.factor(rehosp_oms1)),
-           na.rm = TRUE) +
-  theme_minimal() +
-  labs(x = "", 
-       y = "Frecuencia", 
-       fill = "Rehospitalización") +
-  ggtitle("Proc quirúrgico rehosp") +
-  theme(plot.title = element_text(hjust = 0.5),
-        legend.position = "none") + 
-  scale_fill_brewer(palette = "Paired") -> p13
+p13 <- mygeom_bar(data_rehosp_s, data_rehosp_s$quirur2, data_rehosp_s$rehosp_oms1, "Proc quirúrgico rehosp", "", "Frecuencia", "Rehospitalización", NULL)
 
 grid.arrange(p12,
             p13, p14,
@@ -419,27 +327,9 @@ grid.arrange(p12,
 
 ```{r, warning = FALSE, message = FALSE, echo = FALSE, eval = FALSE}
 
-ggplot(data_rehosp_s, aes(x = ramo)) +
-  geom_bar(aes(fill = as.factor(rehosp_oms1)),
-           na.rm = TRUE) +
-  theme_minimal() +
-  labs(x = "", 
-       y = "Frecuencia", 
-       fill = "Rehospitalización") +
-  ggtitle("Ramo Seguro") +
-  theme(plot.title = element_text(hjust = 0.5)) + 
-  scale_fill_brewer(palette = "Paired") -> p15
+p15 <- mygeom_bar(data_rehosp_s, data_rehosp_s$ramo, data_rehosp_s$rehosp_oms1, "Ramo Seguro", "", "Frecuencia", "Rehospitalización")
 
-ggplot(data_rehosp_s, aes(x = est_civil)) +
-  geom_bar(aes(fill = as.factor(rehosp_oms1)),
-           na.rm = TRUE) +
-  theme_minimal() +
-  labs(x = "", 
-       y = "Frecuencia", 
-       fill = "Rehospitalización") +
-  ggtitle("Estado civil") +
-  theme(plot.title = element_text(hjust = 0.5), legend.position = "none") + 
-  scale_fill_brewer(palette = "Paired") -> p16
+p16 <- mygeom_bar(data_rehosp_s, data_rehosp_s$est_civil, data_rehosp_s$rehosp_oms1, "Estado civil", "", "Frecuencia", "Rehospitalización")
 
 grid.arrange(p15, p16)
 ```
