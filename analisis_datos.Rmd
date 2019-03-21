@@ -5,49 +5,44 @@ output: html_notebook
 ---
 
 <br><div style="text-align: justify">
-El objetivo es desarrollar e implementar un modelo de predicción de rehospitalizaciones para apoyar los programas de evitabilidad post-hospitalaria. El análisis se realizará con información propia del individuo (características sociodemográficas) y datos recolectados por el personal hospitalario, para un periodo de tiempo de dos años y medio que va desde 2016 hasta 2018 </br>
+El objetivo es desarrollar e implementar un modelo de predicción de rehospitalizaciones para apoyar los programas de evitabilidad post-hospitalaria. El análisis se realizará con información que describe las características sociodemográficas del individuo y con algunos datos recolectados por el personal hospitalario, para un periodo de tiempo de dos años y medio, que va desde 2016 hasta 2018 </br>
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 rm(list = ls())
+options(scipen=10)
+
 list.of.packages <- c("readxl", "dplyr", "ggplot2", "ggcorrplot", "VIM", "RColorBrewer", "Information", "knitr", "kableExtra", "gridExtra", "skimr")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 
-options(scipen=10)
+load <- lapply(list.of.packages, library, character.only = TRUE)
 ```
+
 <h3>Entendimiento de los Datos</h3>
 
-El archivo contiene registros que corresponden a eventos de rehospitalizaciones y se encuentra detallado a nivel de cada evento hospitalario. En total son 1718 registros, 49 variables, de las cuales se hace un descarte y quedan las siguientes:
+El archivo contiene registros que corresponden a eventos de rehospitalizaciones y se encuentra detallado a nivel de cada evento hospitalario. En total son 34898 registros, 18 variables, descartando de manera inicial aquellos atributos que se derivan después del segundo diagnóstico. En total. los datos se describen a continuación:
+
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
-data_rehosp_s <- read_xlsx("data_rehosp_s.xlsx",na = c("na", "NA", "null", "NULL"))
+data_rehosp_s <- read_xlsx("DATA_REHOSP.xlsx",na = c("na", "NA", "null", "NULL"))
 data_rehosp_s %>%
-  select(-Ciudad_Contacto,
-         -Ciudad_Contacto_Nombre_rehosp, 
-         -Ciudad_Atencion_Nombre, 
-         -Ciudad_Atencion_Nombre_rehosp,
-         -Dni_Proveedor, 
-         -Dni_Proveedor_rehosp, 
-         -Proveedor,
-         -Proveedor_rehosp,
-         -Categoria_Dx_Id, 
-         -Categoria_Dx_Ingreso_Id, 
-         -Categoria_Dx_Egreso_Id,
-         -Categoria_Dx_Id_rehosp,
-         -Categoria_Dx_Ingreso_Id_rehosp,
-         -Categoria_Dx_Egreso_Id_rehosp,
-         -Codigo_Diagnostico_Op_Ingreso, 
-         -Codigo_Diagnostico_Op_egreso, 
-         -Codigo_Diagnostico_Op_Ing_rehosp, 
-         -Codigo_Diagnostico_Op_Egr_rehosp,
-         -Fecha_Ingreso_Hosp, 
-         -Fecha_Egreso_Hosp, 
-         -Fecha_Ingreso_ReHosp, 
-         -Fecha_Egreso_ReHosp, 
-         -Estado_Egreso, 
-         -Estado_Egreso_rehosp,
-         -Rehospitalizacion,
-         -rehosp_dane,
-         -rehosp_subcat_oms) %>%
+  select(Edad_Hospitalizacion,
+         Estrato_Vivienda,
+         Rango_Ingresos_Desc,
+         Estado_Civil,
+         Genero,
+         cantidad_marcas,
+         Ramo_Id,
+         Ciudad_Contacto_Nombre,
+         Codigo_Diagnostico_Op,
+         Categoria_Dx_Id,
+         Quirurgico,
+         Fecha_Ingreso_Hosp,
+         Numero_Dias_Hospitalario,
+         Numero_Dias_Uci,
+         Numero_Dias_Uce,
+         Proveedor,
+         Valor_Pagado_Diagnostico,
+         rehosp_cat_oms) %>%
   rename(edad = Edad_Hospitalizacion, 
          estrato = Estrato_Vivienda,
          ingreso = Rango_Ingresos_Desc,
@@ -56,54 +51,26 @@ data_rehosp_s %>%
          marcas = cantidad_marcas,
          ramo = Ramo_Id,
          ciudad = Ciudad_Contacto_Nombre,
-         diag1 = Codigo_Diagnostico_Op,
-         quirur1 = Quirurgico,
-         dias_hosp1 = Numero_Dias_Hospitalario,
-         dias_uci1 = Numero_Dias_Uci,
-         dias_uce1 = Numero_Dias_Uce,
-         pago_diag1 = Valor_Pagado_Diagnostico,
-         sig_hosp = Dias_Sig_Hosp,
-         diag2 = Codigo_Diagnostico_Op_REHOSP,
-         quirur2 = Quirurgico_rehosp,
-         dias_hosp2 = Numero_Dias_Hospitalario_rehosp,
-         dias_uci2 = Numero_Dias_Uci_rehosp,
-         dias_uce2 = Numero_Dias_Uce_rehosp,
-         pago_diag2 = Valor_Pagado_Diagnostico_rehosp,
-         rehosp_oms1 = rehosp_cat_oms) %>%
-  mutate(quirur1 = ifelse(quirur1 == 1, 'Si', 'No'),
-         quirur2 = ifelse(quirur2 == 1, 'Si', 'No'),
-         edad = case_when( edad <= 30 ~ "18-30",
-                                 edad >= 31 & edad <= 40 ~ "31-40",
-                                 edad >= 31 & edad <= 40 ~ "31-40",
-                                 edad >= 41 & edad <= 50 ~ "41-50",
-                                 edad >= 51 & edad <= 60 ~ "51-60",
-                                 edad >= 61 & edad <= 70 ~ "61-70",
-                                 edad >= 71 & edad <= 80 ~ "71-80",
-                                 edad >= 81 ~ "81+"),
-         estrato = ifelse(estrato == -1 | estrato == 0, NA, estrato),
-         ramo = as.factor(ramo),
-         genero = as.factor(genero),
-         diag1 = as.factor(diag1),
-         diag2 = as.factor(diag2),
-         ciudad = as.factor(ciudad),
-         quirur2 = as.factor(quirur2),
-         quirur1 = as.factor(quirur1),
-         edad = as.factor(edad)) -> data_rehosp_s
+         diagnos = Codigo_Diagnostico_Op,
+         categoria = Categoria_Dx_Id,
+         quirur = Quirurgico,
+         fecha_ingreso = Fecha_Ingreso_Hosp,
+         dias_hosp = Numero_Dias_Hospitalario,
+         dias_uci = Numero_Dias_Uci,
+         dias_uce = Numero_Dias_Uce,
+         proveedor = Proveedor,
+         pago_hosp = Valor_Pagado_Diagnostico,
+         rehosp_oms = rehosp_cat_oms) -> data_rehosp_s
 head(data_rehosp_s)
 ```
-Variables numéricas (11):
+
+Variables numéricas (8):
 
 * <b>marcas:</b> Cantidad de marcas confirmadas del asegurado
-* <b>dias_hosp1:</b> Dias de hospitalizacion
-* <b>dias_uci1:</b> Numero dias en uci
-* <b>dias_uce1:</b> Numero dias en uce
-* <b>pago_diag1:</b> Valor pagado primera hospitalizacion
-* <b>sig_hosp:</b> Dias hasta la siguiente hospitalizacion
-* <b>dias_hosp2:</b> Dias de hospitalizacion
-* <b>dias_uci2:</b> Dias en uci
-* <b>dias_uce2:</b> Dias en uce
-* <b>pago_diag2:</b> Valor pagado
-
+* <b>dias_hosp:</b> Dias de hospitalizacion
+* <b>dias_uci:</b> Numero dias en uci
+* <b>dias_uce:</b> Numero dias en uce
+* <b>pago_hosp:</b> Valor pagado primera hospitalizacion
 
 Variables nominales (13):
 
@@ -114,15 +81,17 @@ Variables nominales (13):
 * <b>genero:</b> Genero del asegurado (M,F)
 * <b>ramo:</b> Ramo al que pertenece el asegurado
 * <b>ciudad:</b> Ciudad de contacto del asegurado
-* <b>diag1:</b> Codigo Diagnostico cie10 de la atencion
-* <b>quirur1:</b> Si tuvo algun tipo de servicio relacionado a procedimiento quirurgico
-* <b>diag2:</b> Codigo Diagnostico cie10 de la rehospitalizacion
-* <b>quirur2:</b> Si tuvo algun tipo de servicio relacionado a procedimiento quirurgico
-* <b>rehosp_dane:</b> Similitud tabla mortalidad dane
-* <b>rehosp_cat_oms:</b> Similitud categoria cie10
-* <b>rehosp_subcat_oms:</b> Similitud subcategoria cie10 </br>
+* <b>diagnos:</b> Codigo Diagnostico cie10 de la atencion
+* <b>categoria:</b>
+* <b>quirur:</b> Si tuvo algun tipo de servicio relacionado a procedimiento quirurgico
+* <b>rehosp_cat_oms: Similitud categoria cie10, la cual es nuestra variable objetivo</b>
 
-Generamos estadistica descriptiva de los datos
+Fecha (1):
+
+* <b>Fecha_Ingreso:</b> Fecha ingreso hospitalización 
+
+Generamos la estadistica descriptiva de los datos; en ella se puede visualizar que es necesario realizar algunas conversiones en los tipos de datos que vienen por defecto (por ejemplo el estrato aparece como una variable numérica).
+
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 skim_with(numeric = list(hist = NULL))
 
@@ -137,7 +106,7 @@ En la gráfica siguiente podemos observar que hay en total 3 variables que no co
 
 A nivel individual el porcentaje de valores perdidos para todos los casos es superior al 25%. De forma combinada hay 318 registros vacíos en ingreso, 259 en sólo el estrato y 144 en el estado civil, el resto  de los campos nulos corresponde a combinaciones entre dos variables; por ende no podemos decir que la probabilidad de que falte un valor depende solo del valor observado, y usar un método para imputarlo (la forma no es aleatoria).
 
-```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE, fig.width=10, fig.align  = "center"}
+```{r, message = FALSE, warning = FALSE, eval =TRUE, echo = FALSE}
 
 aggr(data_rehosp_s, 
      combined = FALSE, 
@@ -172,13 +141,26 @@ Dado que con la anterior matrix a un nivel de significancia del 5% se comprueba 
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 data_rehosp_s %>%
-  mutate(estrato = ifelse(is.na(estrato), "Sin Informacion", estrato),
+  mutate(estrato = ifelse(is.na(estrato) | estrato == -1 | estrato == 0, "Sin Informacion", estrato),
          est_civil = ifelse(is.na(est_civil), "Sin Informacion", est_civil),
          ingreso = ifelse(is.na(ingreso), "Sin Informacion", ingreso),
-         estrato = as.factor(estrato),
+         quirur = ifelse(quirur == 1, 'Si', 'No'),
+         edad = case_when( edad <= 30 ~ "18-30",
+                           edad >= 31 & edad <= 40 ~ "31-40",
+                           edad >= 41 & edad <= 50 ~ "41-50",
+                           edad >= 51 & edad <= 60 ~ "51-60",
+                           edad >= 61 & edad <= 70 ~ "61-70",
+                           edad >= 71 & edad <= 80 ~ "71-80",
+                           edad >= 81 ~ "81+"),
          est_civil = as.factor(est_civil),
-         ingreso = as.factor(ingreso)) -> data_rehosp_s2
-head(data_rehosp_s2)
+         ingreso = as.factor(ingreso),
+         genero = as.factor(genero),
+         ciudad = as.factor(ciudad),
+         quirur = as.factor(quirur),
+         proveedor = as.factor(proveedor)) %>%
+  select(-diagnos, -categoria) -> data_rehosp_s2
+
+str(data_rehosp_s2)
 ```
 
 <h3>Análisis Exploratorio</h3>
@@ -209,16 +191,16 @@ myboxplot <- function(mydata, myexposure, myoutcome, mytitle, mylabel_x, mylabel
   return(bp)
 }
 
-p1 <- myboxplot(data_rehosp_s, data_rehosp_s$rehosp_oms1, data_rehosp_s$marcas, "", "Rehospitalización", "Marcas", "Rehospitalización")
+p1 <- myboxplot(data_rehosp_s, data_rehosp_s$rehosp_oms, data_rehosp_s$marcas, "", "Rehospitalización", "Marcas", "Rehospitalización")
 
-p2 <- myboxplot(data_rehosp_s, data_rehosp_s$rehosp_oms1, data_rehosp_s$pago_diag1, "", "Rehospitalización", "Pago Diag1", "")
+p2 <- myboxplot(data_rehosp_s, data_rehosp_s$rehosp_oms, data_rehosp_s$pago_hosp, "", "Rehospitalización", "Pago Diag", "")
 
 
 ggplot(
   data_rehosp_s, 
   aes(x = marcas, 
-      color =  as.factor(rehosp_oms1), 
-      shape = as.factor(rehosp_oms1))) + 
+      color =  as.factor(rehosp_oms), 
+      shape = as.factor(rehosp_oms))) + 
   geom_density() +
   labs(title="Total de marcas",
        x = "", 
@@ -229,9 +211,9 @@ ggplot(
 
 ggplot(
   data_rehosp_s, 
-  aes(x = pago_diag1, 
-      color =  as.factor(rehosp_oms1), 
-      shape = as.factor(rehosp_oms1))) + 
+  aes(x = pago_hosp, 
+      color =  as.factor(rehosp_oms), 
+      shape = as.factor(rehosp_oms))) + 
   geom_histogram(alpha = .2,
                  fill= "white", 
                  position = "identity",
@@ -256,21 +238,17 @@ Finalmente, analizando la variable que nos indica el número de días siguientes
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
-p5 <- myboxplot(data_rehosp_s, data_rehosp_s$rehosp_oms1, data_rehosp_s$dias_hosp1, "Total dias hospitalizado", "", "Dias hospitalización", "")
+p5 <- myboxplot(data_rehosp_s, data_rehosp_s$rehosp_oms, data_rehosp_s$dias_hosp, "Total dias hospitalizado", "", "Dias hospitalización", "")
 
-p6 <- myboxplot(data_rehosp_s, data_rehosp_s$rehosp_oms1, data_rehosp_s$sig_hosp, "Total dias siguientes", "", "Dias sig hosp", "")
+p6 <- myboxplot(data_rehosp_s, data_rehosp_s$rehosp_oms, data_rehosp_s$dias_uci, "Total días UCI", "", "Dias UCI", "")
 
-p7 <- myboxplot(data_rehosp_s, data_rehosp_s$rehosp_oms1, data_rehosp_s$dias_uci1, "Total días UCI", "", "Dias UCI", "")
+p7 <- myboxplot(data_rehosp_s, data_rehosp_s$rehosp_oms, data_rehosp_s$dias_uce, "Total días UCE", "", "Dias UCE", "")
 
-p8 <- myboxplot(data_rehosp_s, data_rehosp_s$rehosp_oms1, data_rehosp_s$dias_uce1, "Total días UCE", "", "Dias UCE", "")
-
-grid.arrange(p5, p6, p7, p8, 
+grid.arrange(p5, p6, p7,
              ncol = 2, 
              nrow = 2)
 ```
 
-#Gráfico Barras
-=======
 <br><h4>Análisis univariado - variables cardinales</h4>
 
 Observando las variables categóricas la diferencia entre la probabilidad de que el evento ocurra (haya rehospitalización) o no, se puede evidenciar sólo en algunas clases por categoría, pero en general, las proporciones suelen ser bastantes similares, por lo que no es posible elaborar a priori una hipótesis que estipule diferencias significativas en las distribuciones, por lo menos para ninguna de las tres variables relacionadas en el gráfico a continuación.
@@ -306,11 +284,11 @@ mygeom_bar <- function(mydata, myexposure, myoutcome, mytitle, mylabel_x, mylabe
 }
 
 
-p9 <- mygeom_bar(data_rehosp_s, data_rehosp_s$edad, data_rehosp_s$rehosp_oms1, "Edad", "", "Frecuencia", "Rehospitalización", NULL)
+p9 <- mygeom_bar(data_rehosp_s, data_rehosp_s$edad, data_rehosp_s$rehosp_oms, "Edad", "", "Frecuencia", "Rehospitalización", NULL)
 
-p10 <- mygeom_bar(data_rehosp_s, data_rehosp_s$estrato, data_rehosp_s$rehosp_oms1, "Estrato", "", "Frecuencia", "Rehospitalización", NULL)
+p10 <- mygeom_bar(data_rehosp_s, data_rehosp_s$estrato, data_rehosp_s$rehosp_oms, "Estrato", "", "Frecuencia", "Rehospitalización", NULL)
 
-p11 <- mygeom_bar(data_rehosp_s, data_rehosp_s$genero, data_rehosp_s$rehosp_oms1, "Género", "", "Frecuencia", "Rehospitalización", NULL)
+p11 <- mygeom_bar(data_rehosp_s, data_rehosp_s$genero, data_rehosp_s$rehosp_oms, "Género", "", "Frecuencia", "Rehospitalización", NULL)
 
 grid.arrange(p9,                                    
              p10, p11,                               
@@ -323,11 +301,9 @@ Por otro lado, los atributos que indican: el rango de ingreso, el hecho de que s
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
-p12 <- mygeom_bar(data_rehosp_s, data_rehosp_s$ingreso, data_rehosp_s$rehosp_oms1, "Ingreso", "", "Frecuencia","Rehospitalización", 90)
+p12 <- mygeom_bar(data_rehosp_s, data_rehosp_s$ingreso, data_rehosp_s$rehosp_oms, "Ingreso", "", "Frecuencia","Rehospitalización", 90)
 
-p13 <- mygeom_bar(data_rehosp_s, data_rehosp_s$quirur2, data_rehosp_s$rehosp_oms1, "Proc quirúrgico rehosp", "", "Frecuencia", "Rehospitalización", NULL)
-
-p14 <- mygeom_bar(data_rehosp_s, data_rehosp_s$quirur1, data_rehosp_s$rehosp_oms1, "Proc quirúrgico", "", "Frecuencia", "Rehospitalización", NULL)
+p14 <- mygeom_bar(data_rehosp_s, data_rehosp_s$quirur1, data_rehosp_s$rehosp_oms, "Proc quirúrgico", "", "Frecuencia", "Rehospitalización", NULL)
 
 grid.arrange(p12,
             p13, p14,
@@ -338,9 +314,9 @@ grid.arrange(p12,
 
 ```{r, warning = FALSE, message = FALSE, echo = FALSE, eval = FALSE}
 
-p15 <- mygeom_bar(data_rehosp_s, data_rehosp_s$ramo, data_rehosp_s$rehosp_oms1, "Ramo Seguro", "", "Frecuencia", "Rehospitalización")
+p15 <- mygeom_bar(data_rehosp_s, data_rehosp_s$ramo, data_rehosp_s$rehosp_oms, "Ramo Seguro", "", "Frecuencia", "Rehospitalización")
 
-p16 <- mygeom_bar(data_rehosp_s, data_rehosp_s$est_civil, data_rehosp_s$rehosp_oms1, "Estado civil", "", "Frecuencia", "Rehospitalización")
+p16 <- mygeom_bar(data_rehosp_s, data_rehosp_s$est_civil, data_rehosp_s$rehosp_oms, "Estado civil", "", "Frecuencia", "Rehospitalización")
 
 grid.arrange(p15, p16)
 ```
@@ -375,7 +351,7 @@ test <- select(.data = test, -id)
 
 IV <- create_infotables(data = train,
                    valid = test,
-                   y = "rehosp_oms1")
+                   y = "rehosp_oms")
 
 
 kable_styling(kable(IV$Summary), 
@@ -387,7 +363,7 @@ kable_styling(kable(IV$Summary),
 Enfocandonos en el pago del diagnóstico, el cual, es la variable con mayor influencia, el WOE nos indica una relación no lineal. con un incremento en el WOE a medida que disminuye el rango de pago en el diagnóstico. 
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
-kable_styling(kable(IV$Tables$pago_diag1), 
+kable_styling(kable(IV$Tables$pago_hosp1), 
               position = "center", 
               row_label_position = 1,
               full_width = F)
