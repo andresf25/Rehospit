@@ -29,7 +29,6 @@ data_rehosp_s %>%
          -Dni_Proveedor_rehosp, 
          -Proveedor,
          -Proveedor_rehosp,
-         -INDICE, 
          -Categoria_Dx_Id, 
          -Categoria_Dx_Ingreso_Id, 
          -Categoria_Dx_Egreso_Id,
