@@ -21,7 +21,8 @@ El archivo contiene registros que corresponden a eventos de rehospitalizaciones 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 data_rehosp_s <- read_xlsx("data_rehosp_s.xlsx",na = c("na", "NA", "null", "NULL"))
 data_rehosp_s %>%
-  select(-Ciudad_Contacto_Nombre_rehosp, 
+  select(-Ciudad_Contacto,
+         -Ciudad_Contacto_Nombre_rehosp, 
          -Ciudad_Atencion_Nombre, 
          -Ciudad_Atencion_Nombre_rehosp,
          -Dni_Proveedor, 
@@ -168,7 +169,7 @@ ggcorrplot(corr_miss,
   labs(title = "Correlacion entre datos perdidos por columna")
 ```
 
-Dado que con la anterior matrix a un nivel de significancia del 5% se comprobó la hipótesis inicial de no aleatoriedad, se procede a construir una tercera categoría para cada una de las variables que posee campos vacíos.
+Dado que con la anterior matrix a un nivel de significancia del 5% se comprueba la hipótesis inicial de no aleatoriedad, se procede a construir una tercera categoría para cada una de las variables que posee campos vacíos.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 data_rehosp_s %>%
@@ -181,18 +182,14 @@ data_rehosp_s %>%
 head(data_rehosp_s2)
 ```
 
-* <b>marcas:</b> Cantidad de marcas confirmadas del asegurado
-* <b>dias_hosp1:</b> Dias de hospitalizacion
-* <b>dias_uci1:</b> Numero dias en uci
-* <b>dias_uce1:</b> Numero dias en uce
-* <b>pago_diag1:</b> Valor pagado primera hospitalizacion
-* <b>dias_sig_hosp1:</b> Dias hasta la siguiente hospitalizacion
-* <b>dias_hosp2:</b> Dias de hospitalizacion
-* <b>dias_uci2:</b> Dias en uci
-* <b>dias_uce2:</b> Dias en uce
-* <b>pago_diag2:</b> Valor pagado
+<h3>Análisis Exploratorio</h3>
 
-#Boxplot
+<br><h4>Análisis univariado - variables continuas</h4>
+
+Se puede observar que tanto en el numéro de marcas como en la variable de pago, correspondiente al primer diagnóstico, no parece haber una diferencia significativa en la distribución al discriminar por la variable objetivo binaria, es decir, entre los casos de rehospitalización (1) y casos de no rehospitalización (0). Adicionalmente, la distibución en ambas variables no es simétrica. En el caso de las marcas se observa una asimetría positiva o sesgada a la derecha y de manera similar, aunque menos marcada, para el caso del pago en el primer diagnóstico.
+
+Los datos se encuentran bastante dispersos y reflejan presencia de outliers.
+
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
 myboxplot <- function(mydata, myexposure, myoutcome, mytitle, mylabel_x, mylabel_y, my_fill){
@@ -251,6 +248,13 @@ ggplot(
 grid.arrange(p3, p4, p1, p2, nrow = 2, ncol = 2)
 ```
 
+
+Es evidente la existencia también, de valores atípicos muy marcados tanto en el numéro de días de hospitalización, como en los números de días que el paciente estuvo en la Unidad de Cuidado Intensivo y Especial, en dónde los valores atípicos más grandes suceden en los eventos que terminaron en rehospitalización.
+
+Cabe anotar, que puede existir una colinealidad entre la vaiable días UCE y UCI que debe ser validada más adelante, ya que los pacientes que pasaron por un momento de crisis en la UCI, suelen ser luego remitidos a la UCE cuando sus signos vitales se encuentran más estables y están en proceso de mejora.
+
+Finalmente, analizando la variable que nos indica el número de días siguientes hasta la siguiente hospitalización, hay una diferencia muy leve entre grupos, con un valor en la mediana inferior pára los casos de rehospitalización.
+
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
 p5 <- myboxplot(data_rehosp_s, data_rehosp_s$rehosp_oms1, data_rehosp_s$dias_hosp1, "Total dias hospitalizado", "", "Dias hospitalización", "")
@@ -267,6 +271,12 @@ grid.arrange(p5, p6, p7, p8,
 ```
 
 #Gráfico Barras
+=======
+<br><h4>Análisis univariado - variables cardinales</h4>
+
+Observando las variables categóricas la diferencia entre la probabilidad de que el evento ocurra (haya rehospitalización) o no, se puede evidenciar sólo en algunas clases por categoría, pero en general, las proporciones suelen ser bastantes similares, por lo que no es posible elaborar a priori una hipótesis que estipule diferencias significativas en las distribuciones, por lo menos para ninguna de las tres variables relacionadas en el gráfico a continuación.
+
+
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
 mygeom_bar <- function(mydata, myexposure, myoutcome, mytitle, mylabel_x, mylabel_y, my_fill, my_angle){
@@ -310,13 +320,15 @@ grid.arrange(p9,
 ```
 
 
+Por otro lado, los atributos que indican: el rango de ingreso, el hecho de que se hayan realizado procedimientos quirúrgicos durante la primera hospitalización y de igual forma el hecho de se hayan realizado cirugías durante la segunda hospitalización muestran cierta diferencia en la distribuión por grupo. Por ejemplo, cuando se realizan cirugías derivadas del primer diagnóstico, es más probable que la persona deba ser rehospitalizada de nuevo.
+
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
 p12 <- mygeom_bar(data_rehosp_s, data_rehosp_s$ingreso, data_rehosp_s$rehosp_oms1, "Ingreso", "", "Frecuencia","Rehospitalización", 90)
 
-p14 <- mygeom_bar(data_rehosp_s, data_rehosp_s$quirur1, data_rehosp_s$rehosp_oms1, "Proc quirúrgico", "", "Frecuencia", "Rehospitalización", NULL)
-
 p13 <- mygeom_bar(data_rehosp_s, data_rehosp_s$quirur2, data_rehosp_s$rehosp_oms1, "Proc quirúrgico rehosp", "", "Frecuencia", "Rehospitalización", NULL)
+
+p14 <- mygeom_bar(data_rehosp_s, data_rehosp_s$quirur1, data_rehosp_s$rehosp_oms1, "Proc quirúrgico", "", "Frecuencia", "Rehospitalización", NULL)
 
 grid.arrange(p12,
             p13, p14,
@@ -338,6 +350,8 @@ Con el objetivo de enriquecer el análisis exploratorio, se calcularán dos medi
 
 <br><h4>Análisis de clasificación binaria usando WOE y el IV</h4>
 El peso de la evidencia (WOE) y el valor de la información (IV) ayudan, entre otras cosas, a determinar la contribución independiente de cada variable al resultado, y detectar relaciones lineales y no lineales. El WOE mide la relación entre la variable predictiva y el objeto binario, mientras que el IV mide la fuerza predictiva de esa relación.
+
+La tabla a continuación contiene los valores del "valor de la información" con y sin el ajuste derivado de la validación cruzada. Cuando se realiza el ajuste con el objetivo de que los resultados sean más estables, sólo el pago del diagnóstico, si el paciente pasó por la Unidad de cuidados Especiales la primera vez y si fueron realizados procedimientos quirúrgicos serán las únicas variables con suficiente capacidad de predicción a nivel individual y univariable (Iv > 5%). Cuando se relaja el supuesto, IV sin restar el penalty, se incluirían las marcas y la edad y la ciudad.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 set.seed(1234)
@@ -370,6 +384,8 @@ kable_styling(kable(IV$Summary),
               row_label_position = 1,
               full_width = F)
 ```
+
+Enfocandonos en el pago del diagnóstico, el cual, es la variable con mayor influencia, el WOE nos indica una relación no lineal. con un incremento en el WOE a medida que disminuye el rango de pago en el diagnóstico. 
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 kable_styling(kable(IV$Tables$pago_diag1), 
