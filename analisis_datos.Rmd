@@ -10,7 +10,7 @@ El objetivo es desarrollar e implementar un modelo de predicción de rehospitali
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 rm(list = ls())
 options(scipen=10)
-
+source("functions_plot.R")
 list.of.packages <- c("readxl", "dplyr", "ggplot2", "ggcorrplot", "VIM", "RColorBrewer", "Information", "knitr", "kableExtra", "gridExtra", "skimr")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
@@ -183,28 +183,21 @@ Los datos se encuentran bastante dispersos y reflejan presencia de outliers.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
-myboxplot <- function(mydata, myexposure, myoutcome, mytitle, mylabel_x, mylabel_y, my_fill){
-  bp <- ggplot(
-    mydata, 
-    aes(x = as.factor(myexposure), 
-        y = myoutcome,
-        color=as.factor(myexposure))) +
-    geom_boxplot() + 
-    labs(title = mytitle,
-       x= mylabel_x, 
-       y = mylabel_y,
-       fill = my_fill) +
-    theme_minimal() +
-    theme(plot.title = element_text(hjust = 0.5), 
-        legend.position = "none") + 
-  scale_colour_brewer(palette="Paired")
-  return(bp)
-}
+p1 <- myboxplot(mydata = data_rehosp, 
+                myexposure = "rehosp_oms", 
+                myoutcome = "marcas", 
+                mytitle = "", 
+                mylabel_x = "Rehospitalización", 
+                mylabel_y = "Marcas", 
+                my_fill = "Rehospitalización")
 
-p1 <- myboxplot(data_rehosp, data_rehosp$rehosp_oms, data_rehosp$marcas, "", "Rehospitalización", "Marcas", "Rehospitalización")
-
-p2 <- myboxplot(data_rehosp, data_rehosp$rehosp_oms, data_rehosp$pago_hosp, "", "Rehospitalización", "Pago Diag", "")
-
+p2 <- myboxplot(mydata = data_rehosp, 
+                myexposure = "rehosp_oms", 
+                myoutcome = "pago_hosp", 
+                mytitle = "", 
+                mylabel_x = "Rehospitalización", 
+                mylabel_y = "Pago Diag", 
+                my_fill = "")
 
 ggplot(
   data_rehosp, 
@@ -247,11 +240,29 @@ Finalmente, analizando la variable que nos indica el número de días siguientes
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
-p5 <- myboxplot(data_rehosp, data_rehosp$rehosp_oms, data_rehosp$dias_hosp, "Total dias hospitalizado", "", "Dias hospitalización", "")
+p5 <- myboxplot(mydata = data_rehosp, 
+                myexposure = "rehosp_oms", 
+                myoutcome = "dias_hosp", 
+                mytitle = "Total dias hospitalizado", 
+                mylabel_x = "", 
+                mylabel_y = "Dias hospitalización", 
+                my_fill = "")
 
-p6 <- myboxplot(data_rehosp, data_rehosp$rehosp_oms, data_rehosp$dias_uci, "Total días UCI", "", "Dias UCI", "")
+p6 <- myboxplot(mydata = data_rehosp, 
+                myexposure = "rehosp_oms", 
+                myoutcome = "dias_uci", 
+                mytitle =  "Total días UCI", 
+                mylabel_x = "", 
+                mylabel_y = "Dias UCI", 
+                my_fill = "")
 
-p7 <- myboxplot(data_rehosp, data_rehosp$rehosp_oms, data_rehosp$dias_uce, "Total días UCE", "", "Dias UCE", "")
+p7 <- myboxplot(mydata = data_rehosp, 
+                myexposure = "rehosp_oms", 
+                myoutcome = "dias_uce", 
+                mytitle = "Total días UCE", 
+                mylabel_x = "", 
+                mylabel_y = "Dias UCE", 
+                my_fill = "")
 
 grid.arrange(p5, p6, p7,
              ncol = 2, 
@@ -265,41 +276,32 @@ Observando las variables categóricas la diferencia entre la probabilidad de que
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
-mygeom_bar <- function(mydata, myexposure, myoutcome, mytitle, mylabel_x, mylabel_y, my_fill, my_angle){
-  bp <- 
-  ggplot(
-    mydata, 
-    aes(x = myexposure)) +
-  geom_bar(
-    aes(fill = as.factor(myoutcome),
-        y = (..count..)/sum(..count..)),
-    na.rm = TRUE) +
-  theme_minimal() +
-  labs(x = mylabel_x, 
-       y = "Frecuencia Relativa", 
-       fill = my_fill) +
-  ggtitle(mytitle) +
-  theme(plot.title = element_text(hjust = 0.5),
-        legend.position = "none") + 
-  scale_fill_brewer(palette = "Paired") + 
-  scale_y_continuous(labels=scales::percent) +
+p9 <- mygeom_bar(mydata = data_rehosp, 
+                 myexposure = "edad", 
+                 myoutcome = "rehosp_oms", 
+                 mytitle = "Edad", 
+                 mylabel_x = "", 
+                 mylabel_y = "Frecuencia", 
+                 my_fill = "Rehospitalización", 
+                 my_angle = NULL)
 
-  { # angle
-  if (!is.null(my_angle)) theme(axis.text.x = element_text(angle = my_angle), 
-      legend.position = "none")  } +
-  
-  { # angle
-  if (!is.null(my_angle)) coord_flip() } 
-  
-  return(bp)
-}
+p10 <- mygeom_bar(mydata = data_rehosp, 
+                  myexposure = "estrato", 
+                  myoutcome = "rehosp_oms", 
+                  mytitle = "Estrato", 
+                  mylabel_x = "", 
+                  mylabel_y = "Frecuencia", 
+                  my_fill = "Rehospitalización", 
+                  my_angle = NULL)
 
-
-p9 <- mygeom_bar(data_rehosp, data_rehosp$edad, data_rehosp$rehosp_oms, "Edad", "", "Frecuencia", "Rehospitalización", NULL)
-
-p10 <- mygeom_bar(data_rehosp, data_rehosp$estrato, data_rehosp$rehosp_oms, "Estrato", "", "Frecuencia", "Rehospitalización", NULL)
-
-p11 <- mygeom_bar(data_rehosp, data_rehosp$genero, data_rehosp$rehosp_oms, "Género", "", "Frecuencia", "Rehospitalización", NULL)
+p11 <- mygeom_bar(mydata = data_rehosp, 
+                  myexposure = "genero", 
+                  myoutcome = "rehosp_oms", 
+                  mytitle = "Género", 
+                  mylabel_x = "", 
+                  mylabel_y = "Frecuencia", 
+                  my_fill = "Rehospitalización", 
+                  my_angle = NULL)
 
 grid.arrange(p9,                                    
              p10, p11,                               
@@ -312,12 +314,23 @@ Por otro lado, los atributos que indican: el rango de ingreso, el hecho de que s
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
-p12 <- mygeom_bar(data_rehosp, data_rehosp$ingreso, data_rehosp$rehosp_oms, "Ingreso", "", "Frecuencia","Rehospitalización", 90)
-p12
-p14 <- mygeom_bar(data_rehosp, data_rehosp$quirur, data_rehosp$rehosp_oms, "Proc quirúrgico", "", "Frecuencia", "Rehospitalización", NULL)
-p14
+p12 <- mygeom_bar(mydata = data_rehosp, 
+                  myexposure = "ingreso", 
+                  myoutcome = "rehosp_oms", 
+                  mytitle = "Ingreso", 
+                  mylabel_x = "", 
+                  mylabel_y = "Frecuencia",
+                  my_fill = "Rehospitalización", 
+                  my_angle = 90)
 
-
+p14 <- mygeom_bar(mydata = data_rehosp, 
+                  myexposure = "quirur", 
+                  myoutcome = "rehosp_oms", 
+                  mytitle = "Proc quirúrgico", 
+                  mylabel_x = "", 
+                  mylabel_y = "Frecuencia", 
+                  my_fill = "Rehospitalización", 
+                  my_angle = NULL)
 grid.arrange(p12,
              p14,
             ncol = 2  )
@@ -325,9 +338,23 @@ grid.arrange(p12,
 
 ```{r, warning = FALSE, message = FALSE, echo = FALSE, eval = FALSE}
 
-p15 <- mygeom_bar(data_rehosp, data_rehosp$ramo, data_rehosp$rehosp_oms, "Ramo Seguro", "", "Frecuencia", "Rehospitalización", NULL)
+p15 <- mygeom_bar(mydata = data_rehosp, 
+                  myexposure = "ramo", 
+                  myoutcome = "rehosp_oms", 
+                  mytitle = "Ramo Seguro", 
+                  mylabel_x = "", 
+                  mylabel_y = "Frecuencia", 
+                  my_fill = "Rehospitalización", 
+                  my_angle = NULL)
 
-p16 <- mygeom_bar(data_rehosp, data_rehosp$est_civil, data_rehosp$rehosp_oms, "Estado civil", "", "Frecuencia", "Rehospitalización", NULL)
+p16 <- mygeom_bar(mydata = data_rehosp, 
+                  myexposure = "est_civil", 
+                  myoutcome = "rehosp_oms", 
+                  mytitle = "Estado civil", 
+                  mylabel_x = "", 
+                  mylabel_y = "Frecuencia", 
+                  my_fill = "Rehospitalización", 
+                  my_angle = NULL)
 
 grid.arrange(p15, p16)
 ```
