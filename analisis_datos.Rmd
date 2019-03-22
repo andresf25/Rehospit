@@ -23,8 +23,8 @@ load <- lapply(list.of.packages, library, character.only = TRUE)
 El archivo contiene registros que corresponden a eventos de rehospitalizaciones y se encuentra detallado a nivel de cada evento hospitalario. En total son 34898 registros, 18 variables, descartando de manera inicial aquellos atributos que se derivan después del segundo diagnóstico. En total. los datos se describen a continuación:
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
-data_rehosp_s <- read_xlsx("DATA_REHOSP.xlsx",na = c("na", "NA", "null", "NULL"))
-data_rehosp_s %>%
+data_rehosp <- read_xlsx("DATA_REHOSP.xlsx",na = c("na", "NA", "null", "NULL"))
+data_rehosp %>%
   select(Edad_Hospitalizacion,
          Estrato_Vivienda,
          Rango_Ingresos_Desc,
@@ -60,8 +60,8 @@ data_rehosp_s %>%
          dias_uce = Numero_Dias_Uce,
          proveedor = Proveedor,
          pago_hosp = Valor_Pagado_Diagnostico,
-         rehosp_oms = rehosp_cat_oms) -> data_rehosp_s
-head(data_rehosp_s)
+         rehosp_oms = rehosp_cat_oms) -> data_rehosp
+head(data_rehosp)
 ```
 
 Variables numéricas (8):
@@ -95,7 +95,7 @@ Generamos la estadistica descriptiva de los datos; en ella se puede visualizar q
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 skim_with(numeric = list(hist = NULL))
 
-data_rehosp_s %>% 
+data_rehosp %>% 
   group_by() %>%
   skim()
 ```
@@ -108,7 +108,7 @@ A nivel individual el porcentaje de valores perdidos para todos los casos es sup
 
 ```{r, message = FALSE, warning = FALSE, eval =TRUE, echo = FALSE}
 
-aggr(data_rehosp_s, 
+aggr(data_rehosp, 
      combined = FALSE, 
      numbers = TRUE, 
      prop = c(TRUE, FALSE),
@@ -121,7 +121,7 @@ aggr(data_rehosp_s,
 Para corroborar que los datos no faltan al azar, se realiza un grafico de correlación que nos ayude a verificar lo anterior. Para ello, construimos un dataframe que indique si el campo está vacio (1) o no (0); con esta información seleccionamos sólo aquellas columnas que tienen algunos (no todos) sus registros nulos y finalmente creamos la matrix de correlación.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
-matrix_miss <- as.data.frame(abs(is.na(data_rehosp_s)))
+matrix_miss <- as.data.frame(abs(is.na(data_rehosp)))
 only_miss <- matrix_miss[,sapply(matrix_miss, sd) > 0]
 corr_miss <- round(cor(only_miss),3)
 p.mat <- cor_pmat(only_miss)
@@ -140,7 +140,7 @@ ggcorrplot(corr_miss,
 Dado que con la anterior matrix a un nivel de significancia del 5% se comprueba la hipótesis inicial de no aleatoriedad, se procede a construir una tercera categoría para cada una de las variables que posee campos vacíos.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
-data_rehosp_s %>%
+data_rehosp %>%
   mutate(estrato = ifelse(is.na(estrato) | estrato == -1 | estrato == 0, "Sin Informacion", estrato),
          est_civil = ifelse(is.na(est_civil), "Sin Informacion", est_civil),
          ingreso = ifelse(is.na(ingreso), "Sin Informacion", ingreso),
@@ -157,10 +157,11 @@ data_rehosp_s %>%
          genero = as.factor(genero),
          ciudad = as.factor(ciudad),
          quirur = as.factor(quirur),
-         proveedor = as.factor(proveedor)) %>%
-  select(-diagnos, -categoria) -> data_rehosp_s2
+         proveedor = as.factor(proveedor),
+         ramo = as.factor(ramo)) %>%
+  select(-diagnos, -categoria) -> data_rehosp
 
-str(data_rehosp_s2)
+str(data_rehosp)
 ```
 
 <h3>Análisis Exploratorio</h3>
@@ -191,13 +192,13 @@ myboxplot <- function(mydata, myexposure, myoutcome, mytitle, mylabel_x, mylabel
   return(bp)
 }
 
-p1 <- myboxplot(data_rehosp_s, data_rehosp_s$rehosp_oms, data_rehosp_s$marcas, "", "Rehospitalización", "Marcas", "Rehospitalización")
+p1 <- myboxplot(data_rehosp, data_rehosp$rehosp_oms, data_rehosp$marcas, "", "Rehospitalización", "Marcas", "Rehospitalización")
 
-p2 <- myboxplot(data_rehosp_s, data_rehosp_s$rehosp_oms, data_rehosp_s$pago_hosp, "", "Rehospitalización", "Pago Diag", "")
+p2 <- myboxplot(data_rehosp, data_rehosp$rehosp_oms, data_rehosp$pago_hosp, "", "Rehospitalización", "Pago Diag", "")
 
 
 ggplot(
-  data_rehosp_s, 
+  data_rehosp, 
   aes(x = marcas, 
       color =  as.factor(rehosp_oms), 
       shape = as.factor(rehosp_oms))) + 
@@ -210,7 +211,7 @@ ggplot(
   scale_colour_manual(values = c("#99CCFF", "#0066CC")) -> p3
 
 ggplot(
-  data_rehosp_s, 
+  data_rehosp, 
   aes(x = pago_hosp, 
       color =  as.factor(rehosp_oms), 
       shape = as.factor(rehosp_oms))) + 
@@ -229,7 +230,6 @@ ggplot(
 grid.arrange(p3, p4, p1, p2, nrow = 2, ncol = 2)
 ```
 
-
 Es evidente la existencia también, de valores atípicos muy marcados tanto en el numéro de días de hospitalización, como en los números de días que el paciente estuvo en la Unidad de Cuidado Intensivo y Especial, en dónde los valores atípicos más grandes suceden en los eventos que terminaron en rehospitalización.
 
 Cabe anotar, que puede existir una colinealidad entre la vaiable días UCE y UCI que debe ser validada más adelante, ya que los pacientes que pasaron por un momento de crisis en la UCI, suelen ser luego remitidos a la UCE cuando sus signos vitales se encuentran más estables y están en proceso de mejora.
@@ -238,11 +238,11 @@ Finalmente, analizando la variable que nos indica el número de días siguientes
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
-p5 <- myboxplot(data_rehosp_s, data_rehosp_s$rehosp_oms, data_rehosp_s$dias_hosp, "Total dias hospitalizado", "", "Dias hospitalización", "")
+p5 <- myboxplot(data_rehosp, data_rehosp$rehosp_oms, data_rehosp$dias_hosp, "Total dias hospitalizado", "", "Dias hospitalización", "")
 
-p6 <- myboxplot(data_rehosp_s, data_rehosp_s$rehosp_oms, data_rehosp_s$dias_uci, "Total días UCI", "", "Dias UCI", "")
+p6 <- myboxplot(data_rehosp, data_rehosp$rehosp_oms, data_rehosp$dias_uci, "Total días UCI", "", "Dias UCI", "")
 
-p7 <- myboxplot(data_rehosp_s, data_rehosp_s$rehosp_oms, data_rehosp_s$dias_uce, "Total días UCE", "", "Dias UCE", "")
+p7 <- myboxplot(data_rehosp, data_rehosp$rehosp_oms, data_rehosp$dias_uce, "Total días UCE", "", "Dias UCE", "")
 
 grid.arrange(p5, p6, p7,
              ncol = 2, 
@@ -262,17 +262,19 @@ mygeom_bar <- function(mydata, myexposure, myoutcome, mytitle, mylabel_x, mylabe
     mydata, 
     aes(x = myexposure)) +
   geom_bar(
-    aes(fill = as.factor(myoutcome)),
+    aes(fill = as.factor(myoutcome),
+        y = (..count..)/sum(..count..)),
     na.rm = TRUE) +
   theme_minimal() +
   labs(x = mylabel_x, 
-       y = mylabel_y, 
+       y = "Frecuencia Relativa", 
        fill = my_fill) +
   ggtitle(mytitle) +
   theme(plot.title = element_text(hjust = 0.5),
         legend.position = "none") + 
   scale_fill_brewer(palette = "Paired") + 
-    
+  scale_y_continuous(labels=scales::percent) +
+
   { # angle
   if (!is.null(my_angle)) theme(axis.text.x = element_text(angle = my_angle), 
       legend.position = "none")  } +
@@ -284,11 +286,11 @@ mygeom_bar <- function(mydata, myexposure, myoutcome, mytitle, mylabel_x, mylabe
 }
 
 
-p9 <- mygeom_bar(data_rehosp_s, data_rehosp_s$edad, data_rehosp_s$rehosp_oms, "Edad", "", "Frecuencia", "Rehospitalización", NULL)
+p9 <- mygeom_bar(data_rehosp, data_rehosp$edad, data_rehosp$rehosp_oms, "Edad", "", "Frecuencia", "Rehospitalización", NULL)
 
-p10 <- mygeom_bar(data_rehosp_s, data_rehosp_s$estrato, data_rehosp_s$rehosp_oms, "Estrato", "", "Frecuencia", "Rehospitalización", NULL)
+p10 <- mygeom_bar(data_rehosp, data_rehosp$estrato, data_rehosp$rehosp_oms, "Estrato", "", "Frecuencia", "Rehospitalización", NULL)
 
-p11 <- mygeom_bar(data_rehosp_s, data_rehosp_s$genero, data_rehosp_s$rehosp_oms, "Género", "", "Frecuencia", "Rehospitalización", NULL)
+p11 <- mygeom_bar(data_rehosp, data_rehosp$genero, data_rehosp$rehosp_oms, "Género", "", "Frecuencia", "Rehospitalización", NULL)
 
 grid.arrange(p9,                                    
              p10, p11,                               
@@ -301,22 +303,22 @@ Por otro lado, los atributos que indican: el rango de ingreso, el hecho de que s
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
-p12 <- mygeom_bar(data_rehosp_s, data_rehosp_s$ingreso, data_rehosp_s$rehosp_oms, "Ingreso", "", "Frecuencia","Rehospitalización", 90)
+p12 <- mygeom_bar(data_rehosp, data_rehosp$ingreso, data_rehosp$rehosp_oms, "Ingreso", "", "Frecuencia","Rehospitalización", 90)
+p12
+p14 <- mygeom_bar(data_rehosp, data_rehosp$quirur, data_rehosp$rehosp_oms, "Proc quirúrgico", "", "Frecuencia", "Rehospitalización", NULL)
+p14
 
-p14 <- mygeom_bar(data_rehosp_s, data_rehosp_s$quirur1, data_rehosp_s$rehosp_oms, "Proc quirúrgico", "", "Frecuencia", "Rehospitalización", NULL)
 
 grid.arrange(p12,
-            p13, p14,
-            ncol = 2,
-            nrow = 2,
-            layout_matrix = cbind(c(1,1), c(2,3)))
+             p14,
+            ncol = 2  )
 ```
 
 ```{r, warning = FALSE, message = FALSE, echo = FALSE, eval = FALSE}
 
-p15 <- mygeom_bar(data_rehosp_s, data_rehosp_s$ramo, data_rehosp_s$rehosp_oms, "Ramo Seguro", "", "Frecuencia", "Rehospitalización")
+p15 <- mygeom_bar(data_rehosp, data_rehosp$ramo, data_rehosp$rehosp_oms, "Ramo Seguro", "", "Frecuencia", "Rehospitalización", NULL)
 
-p16 <- mygeom_bar(data_rehosp_s, data_rehosp_s$est_civil, data_rehosp_s$rehosp_oms, "Estado civil", "", "Frecuencia", "Rehospitalización")
+p16 <- mygeom_bar(data_rehosp, data_rehosp$est_civil, data_rehosp$rehosp_oms, "Estado civil", "", "Frecuencia", "Rehospitalización", NULL)
 
 grid.arrange(p15, p16)
 ```
@@ -331,20 +333,17 @@ La tabla a continuación contiene los valores del "valor de la información" con
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 set.seed(1234)
 
-data_rehosp_s <- data_rehosp_s %>%
+data_rehosp <- data_rehosp %>%
   mutate(id = 1:nrow(.)) 
 
-data_rehosp_s %>%
-  sample_frac(size = .70) %>%
-  select(-diag1, 
-         -diag2) -> train
+data_rehosp %>%
+  sample_frac(size = .70) -> train
 
-data_rehosp_s %>%
+data_rehosp %>%
   anti_join(x = .,
             y = train, 
-            by = "id") %>%
-  select(-diag1, 
-         -diag2) -> test
+            by = "id") -> test
+  
 
 train <- select(.data = train, -id)
 test <- select(.data = test, -id)
@@ -380,4 +379,35 @@ MultiPlot(IV, IV$Summary$Variable[1:9])
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 MultiPlot(IV, IV$Summary$Variable[10:18])
 ```
+ssss
+```{r}
+## Loading DMwr to balance the unbalanced class
+library(DMwR)
 
+prop.table(table(data_rehosp$rehosp_oms))
+
+table(data_rehosp$rehosp_oms)
+
+str(data_rehosp2)
+
+data_rehosp2 <- data_rehosp
+#data_rehosp2$rehosp_oms <- factor(ifelse(data_rehosp2$rehosp_oms == 1,"si","no")) 
+data_rehosp2$rehosp_oms <- as.factor(data_rehosp2$rehosp_oms)
+data_rehosp2$edad <- as.factor(data_rehosp2$edad) 
+data_rehosp2$estrato <- as.factor(data_rehosp2$estrato)
+data_rehosp2$ramo <- as.factor(data_rehosp2$ramo) 
+
+
+data_rehosp2 %>%
+  select(-fecha_ingreso) -> data_rehosp2
+
+
+## Smote : Synthetic Minority Oversampling Technique To Handle Class Imbalancy In Binary Classification
+## now using SMOTE to create a more "balanced problem"
+newData <- SMOTE(rehosp_oms ~ ., as.data.frame(data_rehosp2), perc.over = 200, perc.under = 100)
+newData <- SMOTE(rehosp_oms ~ ., as.data.frame(data_rehosp2), perc.over = 1400, perc.under = 140)
+
+table(newData$rehosp_oms)
+prop.table(table(newData$rehosp_oms))
+head(newData)
+```
