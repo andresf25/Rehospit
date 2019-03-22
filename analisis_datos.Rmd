@@ -64,33 +64,42 @@ data_rehosp_s %>%
 head(data_rehosp_s)
 ```
 
-Variables numéricas (8):
+Variables continuas (5):
 
 * <b>marcas:</b> Cantidad de marcas confirmadas del asegurado
-* <b>dias_hosp:</b> Dias de hospitalizacion
-* <b>dias_uci:</b> Numero dias en uci
-* <b>dias_uce:</b> Numero dias en uce
-* <b>pago_hosp:</b> Valor pagado primera hospitalizacion
+* <b>dias_hosp:</b> Dias de hospitalización
+* <b>dias_uci:</b> Número dias en uci
+* <b>dias_uce:</b> Número dias en uce
+* <b>pago_hosp:</b> Valor pagado primera hospitalización
 
-Variables nominales (13):
+Variables nominales (5):
 
-* <b>edad:</b> Edad del asegurado en el momento de la hospitalizacion
 * <b>estrato:</b> Estrato Vivienda (0,1,2,3,4,5,6,-1)
-* <b>ingreso:</b> Rango de ingresos
 * <b>est_civil:</b> Estado civil (C,D,S,U,V,-1)
-* <b>genero:</b> Genero del asegurado (M,F)
-* <b>ramo:</b> Ramo al que pertenece el asegurado
 * <b>ciudad:</b> Ciudad de contacto del asegurado
-* <b>diagnos:</b> Codigo Diagnostico cie10 de la atencion
-* <b>categoria:</b>
-* <b>quirur:</b> Si tuvo algun tipo de servicio relacionado a procedimiento quirurgico
-* <b>rehosp_cat_oms: Similitud categoria cie10, la cual es nuestra variable objetivo</b>
+* <b>diagnos:</b> Codigo Diagnóstico de la primera atención -cie10 
+* <b>categoria:</b> Categoría del diagnóstico según el tipo de enfermedad
+
+Variable dicotómica (4):
+
+* <b>genero:</b> Género del asegurado (M,F)
+* <b>ramo:</b> Ramo al que pertenece el asegurado
+* <b>quirur:</b> Si tuvo algun tipo de servicio relacionado a procedimiento quirúrgico
+* <b>rehosp_cat_oms: Similitud categoría cie10. Esta es nuestra variable objetivo</b>
+
+Variables discretas (1):
+
+<b>edad:</b> Edad del asegurado en el momento de la hospitalización
+
+Variables ordinales (1):
+
+<b>ingreso:</b> Rango de ingresos
 
 Fecha (1):
 
-* <b>Fecha_Ingreso:</b> Fecha ingreso hospitalización 
+<b>Fecha_Ingreso:</b> Fecha ingreso hospitalización 
 
-Generamos la estadistica descriptiva de los datos; en ella se puede visualizar que es necesario realizar algunas conversiones en los tipos de datos que vienen por defecto (por ejemplo el estrato aparece como una variable numérica).
+Generamos la estadística descriptiva de los datos; en ella se puede visualizar que es necesario realizar más adelante algunas conversiones en los tipos de datos que vienen por defecto (por ejemplo el estrato aparece como una variable numérica). Pero antes de continuar con la codificación, procederemos a realizar un brea análisis de valores pérdidos que nos permitan refinar la limpieza requerida en los datos.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 skim_with(numeric = list(hist = NULL))
