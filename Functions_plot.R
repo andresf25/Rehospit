@@ -6,18 +6,19 @@ library(rlang)
 myboxplot <- function(mydata, myexposure, myoutcome, mytitle, mylabel_x, mylabel_y, my_fill)
 
 {
-  ##########################################################
-  ##########################################################
-  #### Modifica el a?o base de la inflaci?n          #######
-  #### con base al periodo empleado.                 #######
-  #### Recibe los siguientes par?metros:             #######
-  #### data = Dtaframe con los datos mensuales       #######
-  #### variable = serie historica de la inflaci?n    #######
-  #### fecha = periodo de tiempo empleado            #######
-  #### per_bef = periodo de la base anterior         ####### 
-  #### per_aft = periodo de la nueva base            #######
-  ##########################################################
-  ##########################################################
+  ###########################################################
+  ###########################################################
+  #### Crear grafico boxplot                          #######
+  #### Recibe los siguientes par?metros:              #######
+  #### data = Dataframe con datos                     #######
+  #### myexposure = Variable eje x para agrupar datos #######
+  #### myoutcome = Variable eje y valores datos       #######
+  #### mytitle = Titulo para la grafica               ####### 
+  #### mylabel_x = Label descripcion eje x            #######
+  #### mylabel_y = Label descripcion eje y            #######
+  #### my_fill = Variable para color de relleno       #######
+  ###########################################################
+  ###########################################################
   
   bp <- ggplot(
     mydata, 
@@ -38,22 +39,24 @@ myboxplot <- function(mydata, myexposure, myoutcome, mytitle, mylabel_x, mylabel
 
 
 
-mygeom_bar <- function(mydata, myexposure, myoutcome, mytitle, mylabel_x, mylabel_y, my_fill, my_angle)
+mygeom_bar <- function(mydata, myexposure, myoutcome, mytitle, mylabel_x, mylabel_y, my_fill, my_angle, my_legend)
 
 {
-  
-  ##########################################################
-  ##########################################################
-  #### Modifica el a?o base de la inflaci?n          #######
-  #### con base al periodo empleado.                 #######
-  #### Recibe los siguientes par?metros:             #######
-  #### data = Dtaframe con los datos mensuales       #######
-  #### variable = serie historica de la inflaci?n    #######
-  #### fecha = periodo de tiempo empleado            #######
-  #### per_bef = periodo de la base anterior         ####### 
-  #### per_aft = periodo de la nueva base            #######
-  ##########################################################
-  ##########################################################
+  ###########################################################
+  ###########################################################
+  #### Crear grafico barras                           #######
+  #### Recibe los siguientes par?metros:              #######
+  #### data = Dataframe con datos                     #######
+  #### myexposure = Variable eje x para agrupar datos #######
+  #### myoutcome = Variable eje y valores datos       #######
+  #### mytitle = Titulo para la grafica               ####### 
+  #### mylabel_x = Label descripcion eje x            #######
+  #### mylabel_y = Label descripcion eje y            #######
+  #### my_fill = Variable para color de relleno       #######
+  #### my_angle = Angulo al cual girar grafico        #######
+  #### my_legend = Leyenda para el grafico            #######
+  ###########################################################
+  ###########################################################
   
   
   bp <- 
@@ -69,15 +72,15 @@ mygeom_bar <- function(mydata, myexposure, myoutcome, mytitle, mylabel_x, mylabe
          y = "Frecuencia Relativa", 
          fill = my_fill) +
     ggtitle(mytitle) +
-    theme(plot.title = element_text(hjust = 0.5),
-          legend.position = "none") + 
+    theme(plot.title = element_text(hjust = 0.5)) + 
     scale_fill_brewer(palette = "Paired") + 
     scale_y_continuous(labels=scales::percent) +
+    theme(legend.position = my_legend) +
     
     { # angle
-      if (!is.null(my_angle)) theme(axis.text.x = element_text(angle = my_angle), 
-                                    legend.position = "none")  } +
+    if (!is.null(my_angle)) theme(axis.text.x = element_text(angle = my_angle))  } +
     
-                                    { # angle
-                                      if (!is.null(my_angle)) coord_flip()} 
+    { # angle
+    if (!is.null(my_angle)) coord_flip()}
+  
 }
