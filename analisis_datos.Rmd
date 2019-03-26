@@ -5,7 +5,7 @@ output: html_notebook
 ---
 
 <br><div style="text-align: justify">
-El objetivo es desarrollar e implementar un modelo de predicción de rehospitalizaciones para apoyar los programas de evitabilidad post-hospitalaria. El análisis se realizará con información que describe las características sociodemográficas del individuo y con algunos datos recolectados por el personal hospitalario, para un periodo de tiempo de dos años y medio, que va desde 2016 hasta 2018 </br>
+El objetivo es desarrollar e implementar un modelo de predicción de rehospitalizaciones para apoyar los programas de evitabilidad post-hospitalaria. El análisis se realizará con información que describe las características sociodemográficas del individuo y con algunos datos recolectados por el personal hospitalario para un periodo de tiempo de dos años y medio, que va desde 2016 hasta 2018 </br>
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 rm(list = ls())
@@ -20,7 +20,7 @@ load <- lapply(list.of.packages, library, character.only = TRUE)
 
 <h3>Entendimiento de los Datos</h3>
 
-El archivo contiene registros que corresponden a eventos de rehospitalizaciones y se encuentra detallado a nivel de cada evento hospitalario. En total son 34898 registros, 18 variables, descartando de manera inicial aquellos atributos que se derivan después del segundo diagnóstico. En total. los datos se describen a continuación:
+El archivo contiene registros que corresponden a eventos de rehospitalizaciones y se encuentra detallado a nivel de cada evento hospitalario. En total son 34898 registros, 18 variables, descartando de manera inicial, aquellos atributos que se derivan después del segundo diagnóstico.los datos se describen a continuación:
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 data_rehosp <- read_xlsx("DATA_REHOSP.xlsx",na = c("na", "NA", "null", "NULL"))
@@ -99,7 +99,7 @@ Fecha (1):
 
 <b>Fecha_Ingreso:</b> Fecha ingreso hospitalización 
 
-Generamos la estadística descriptiva de los datos; en ella se puede visualizar que es necesario realizar más adelante algunas conversiones en los tipos de datos que vienen por defecto (por ejemplo el estrato aparece como una variable numérica). Pero antes de continuar con la codificación, procederemos a realizar un brea análisis de valores pérdidos que nos permitan refinar la limpieza requerida en los datos.
+Generamos la estadística descriptiva de los datos; en ella se puede visualizar que es necesario realizar más adelante algunas conversiones en los tipos de datos que vienen por defecto (por ejemplo el estrato aparece como una variable numérica). Pero antes de continuar con la codificación, procederemos a realizar un breve análisis de valores pérdidos que nos permitan refinar la limpieza requerida en los datos.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 skim_with(numeric = list(hist = NULL))
@@ -147,6 +147,8 @@ ggcorrplot(corr_miss,
 ```
 
 Dado que con la anterior matrix a un nivel de significancia del 5% se comprueba la hipótesis inicial de no aleatoriedad, se procede a construir una tercera categoría para cada una de las variables que posee campos vacíos.
+
+La variable categoría y diagnóstico están altamente correlacionadas con la variable endógena, se procede a eliminarlas del análisis para no incurrir en posibles sobreajustes en la etapa de modelado.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 data_rehosp %>%
@@ -236,7 +238,6 @@ Es evidente la existencia también, de valores atípicos muy marcados tanto en e
 
 Cabe anotar, que puede existir una colinealidad entre la vaiable días UCE y UCI que debe ser validada más adelante, ya que los pacientes que pasaron por un momento de crisis en la UCI, suelen ser luego remitidos a la UCE cuando sus signos vitales se encuentran más estables y están en proceso de mejora.
 
-Finalmente, analizando la variable que nos indica el número de días siguientes hasta la siguiente hospitalización, hay una diferencia muy leve entre grupos, con un valor en la mediana inferior pára los casos de rehospitalización.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
@@ -309,8 +310,7 @@ grid.arrange(p9,
              layout_matrix = rbind(c(1,1), c(2,3)))
 ```
 
-
-Por otro lado, los atributos que indican: el rango de ingreso, el hecho de que se hayan realizado procedimientos quirúrgicos durante la primera hospitalización y de igual forma el hecho de se hayan realizado cirugías durante la segunda hospitalización muestran cierta diferencia en la distribuión por grupo. Por ejemplo, cuando se realizan cirugías derivadas del primer diagnóstico, es más probable que la persona deba ser rehospitalizada de nuevo.
+Por otro lado, los atributos que indican: el rango de ingreso y el hecho de que se hayan realizado procedimientos quirúrgicos durante la primera hospitalización muestran cierta diferencia en la distribuión por grupo. Por ejemplo, cuando se realizan cirugías derivadas del primer diagnóstico, es más probable que la persona deba ser rehospitalizada de nuevo.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
@@ -358,6 +358,31 @@ p16 <- mygeom_bar(mydata = data_rehosp,
 
 grid.arrange(p15, p16)
 ```
+
+Con el análisis anterior no sólo se logra identificar variables con presencia de valores atípics, sino que también es posible evidenciar que los datos se encuentran altamente desbalanceados. Por ende, antes de continur con la exploración de los datos se procede a tratar ambos problemas. En el caso de los outliers se truncará en los casos en que sea necesario, imputando los valores que superen cierto límite en el percntil, tanto mayor como menor.
+
+```{r}
+data_rehosp %>%
+  mutate(marcas = outlier(x = ., 
+                          value = marcas, 
+                          q1 = 0.05, q2 = 0.95),
+         pago_hosp = outlier(x = ., 
+                             value = pago_hosp, 
+                             q1 = 0.05,q2 = 0.95),
+         dias_hosp = outlier(x = ., 
+                             value = dias_hosp,
+                             q1 = 0.05,q2 = 0.95),
+         dias_uci = outlier(x = ., 
+                            value = dias_uci, 
+                            q1 = 0.05,q2 = 0.95),
+         dias_uce = outlier(x = ., 
+                            value = dias_uce, 
+                            q1 = 0.05,q2 = 0.95))
+
+```
+
+
+
 
 Con el objetivo de enriquecer el análisis exploratorio, se calcularán dos medidas muy comúnes de la teoría de la información, éstas permiten inferir algo del poder predictivo que pueden tener las variables independientes, antes de hacer parte de un modelo.
 
