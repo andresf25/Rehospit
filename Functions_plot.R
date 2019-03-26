@@ -19,6 +19,7 @@ myboxplot <- function(mydata, myexposure, myoutcome, mytitle, mylabel_x, mylabel
   #### my_fill = Variable para color de relleno       #######
   ###########################################################
   ###########################################################
+
   
   bp <- ggplot(
     mydata, 
@@ -57,7 +58,7 @@ mygeom_bar <- function(mydata, myexposure, myoutcome, mytitle, mylabel_x, mylabe
   #### my_legend = Leyenda para el grafico            #######
   ###########################################################
   ###########################################################
-  
+
   
   bp <- 
     ggplot(
@@ -82,5 +83,29 @@ mygeom_bar <- function(mydata, myexposure, myoutcome, mytitle, mylabel_x, mylabe
     
     { # angle
     if (!is.null(my_angle)) coord_flip()}
+}
+
+
+outlier <- function(x, value, q1, q2){
   
+  
+  ##########################################################
+  ##########################################################
+  #### Modifica el anio base de la inflaci?n         #######
+  #### con base al periodo empleado.                 #######
+  #### Recibe los siguientes par?metros:             #######
+  #### data = Dtaframe con los datos mensuales       #######
+  #### variable = serie historica de la inflaci?n    #######
+  #### fecha = periodo de tiempo empleado            #######
+  #### per_bef = periodo de la base anterior         ####### 
+  #### per_aft = periodo de la nueva base            #######
+  ##########################################################
+  ##########################################################
+  
+  quantiles <- quantile(x[[value]], 
+                        c(q1,q2), 
+                        na.rm = TRUE)
+  ifelse(x[[value]] < quantiles[1] | x[[value]] > quantiles[2], 
+         mean(x[[value]]), 
+         x[[value]])
 }
