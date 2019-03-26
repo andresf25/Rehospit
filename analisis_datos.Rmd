@@ -284,7 +284,8 @@ p9 <- mygeom_bar(mydata = data_rehosp,
                  mylabel_x = "", 
                  mylabel_y = "Frecuencia", 
                  my_fill = "Rehospitalización", 
-                 my_angle = NULL)
+                 my_angle = NULL,
+                 my_legend = "none")
 
 p10 <- mygeom_bar(mydata = data_rehosp, 
                   myexposure = "estrato", 
@@ -293,21 +294,11 @@ p10 <- mygeom_bar(mydata = data_rehosp,
                   mylabel_x = "", 
                   mylabel_y = "Frecuencia", 
                   my_fill = "Rehospitalización", 
-                  my_angle = NULL)
-
-p11 <- mygeom_bar(mydata = data_rehosp, 
-                  myexposure = "genero", 
-                  myoutcome = "rehosp_oms", 
-                  mytitle = "Género", 
-                  mylabel_x = "", 
-                  mylabel_y = "Frecuencia", 
-                  my_fill = "Rehospitalización", 
-                  my_angle = NULL)
+                  my_angle = NULL,
+                  my_legend = "right")
 
 grid.arrange(p9,                                    
-             p10, p11,                               
-             ncol = 2, nrow = 2,
-             layout_matrix = rbind(c(1,1), c(2,3)))
+             p10)
 ```
 
 Por otro lado, los atributos que indican: el rango de ingreso y el hecho de que se hayan realizado procedimientos quirúrgicos durante la primera hospitalización muestran cierta diferencia en la distribuión por grupo. Por ejemplo, cuando se realizan cirugías derivadas del primer diagnóstico, es más probable que la persona deba ser rehospitalizada de nuevo.
@@ -321,7 +312,8 @@ p12 <- mygeom_bar(mydata = data_rehosp,
                   mylabel_x = "", 
                   mylabel_y = "Frecuencia",
                   my_fill = "Rehospitalización", 
-                  my_angle = 90)
+                  my_angle = 90,
+                  my_legend = "none")
 
 p14 <- mygeom_bar(mydata = data_rehosp, 
                   myexposure = "quirur", 
@@ -330,10 +322,17 @@ p14 <- mygeom_bar(mydata = data_rehosp,
                   mylabel_x = "", 
                   mylabel_y = "Frecuencia", 
                   my_fill = "Rehospitalización", 
-                  my_angle = NULL)
+                  my_angle = NULL,
+                  my_legend = "bottom")
+
+
+
 grid.arrange(p12,
              p14,
-            ncol = 2  )
+             p11,
+            ncol = 2,
+            nrow = 2,
+            layout_matrix = cbind(c(1,1), c(2,3)))
 ```
 
 ```{r, warning = FALSE, message = FALSE, echo = FALSE, eval = FALSE}
@@ -345,7 +344,8 @@ p15 <- mygeom_bar(mydata = data_rehosp,
                   mylabel_x = "", 
                   mylabel_y = "Frecuencia", 
                   my_fill = "Rehospitalización", 
-                  my_angle = NULL)
+                  my_angle = NULL,
+                  my_legend = "none")
 
 p16 <- mygeom_bar(mydata = data_rehosp, 
                   myexposure = "est_civil", 
@@ -354,9 +354,28 @@ p16 <- mygeom_bar(mydata = data_rehosp,
                   mylabel_x = "", 
                   mylabel_y = "Frecuencia", 
                   my_fill = "Rehospitalización", 
-                  my_angle = NULL)
+                  my_angle = NULL,
+                  my_legend = "right")
 
-grid.arrange(p15, p16)
+
+p11 <- mygeom_bar(mydata = data_rehosp, 
+                  myexposure = "genero", 
+                  myoutcome = "rehosp_oms", 
+                  mytitle = "Género", 
+                  mylabel_x = "", 
+                  mylabel_y = "Frecuencia", 
+                  my_fill = "Rehospitalización", 
+                  my_angle = NULL,
+                  my_legend = "none")
+
+
+grid.arrange(p15,
+             p11,
+             p16,
+            ncol = 2,
+            nrow = 2,
+            layout_matrix = rbind(c(1,2), c(3,3)))
+
 ```
 
 Con el análisis anterior no sólo se logra identificar variables con presencia de valores atípics, sino que también es posible evidenciar que los datos se encuentran altamente desbalanceados. Por ende, antes de continur con la exploración de los datos se procede a tratar ambos problemas. En el caso de los outliers se truncará en los casos en que sea necesario, imputando los valores que superen cierto límite en el percntil, tanto mayor como menor.
@@ -379,8 +398,6 @@ data_rehosp %>%
                             value = dias_uce, 
                             q1 = 0.05,q2 = 0.95))
 ```
-
-
 
 
 Con el objetivo de enriquecer el análisis exploratorio, se calcularán dos medidas muy comúnes de la teoría de la información, éstas permiten inferir algo del poder predictivo que pueden tener las variables independientes, antes de hacer parte de un modelo.
@@ -445,27 +462,22 @@ ssss
 library(DMwR)
 
 prop.table(table(data_rehosp$rehosp_oms))
-
 table(data_rehosp$rehosp_oms)
 
-str(data_rehosp2)
-
 data_rehosp2 <- data_rehosp
-#data_rehosp2$rehosp_oms <- factor(ifelse(data_rehosp2$rehosp_oms == 1,"si","no")) 
-data_rehosp2$rehosp_oms <- as.factor(data_rehosp2$rehosp_oms)
-data_rehosp2$edad <- as.factor(data_rehosp2$edad) 
-data_rehosp2$estrato <- as.factor(data_rehosp2$estrato)
-data_rehosp2$ramo <- as.factor(data_rehosp2$ramo) 
-
+str(data_rehosp2)
 
 data_rehosp2 %>%
   select(-fecha_ingreso) -> data_rehosp2
 
+data_rehosp2$rehosp_oms <- as.factor(data_rehosp2$rehosp_oms)
+data_rehosp2$edad <- as.factor(data_rehosp2$edad)
+data_rehosp2$estrato <- as.factor(data_rehosp2$estrato)
 
 ## Smote : Synthetic Minority Oversampling Technique To Handle Class Imbalancy In Binary Classification
 ## now using SMOTE to create a more "balanced problem"
-newData <- SMOTE(rehosp_oms ~ ., as.data.frame(data_rehosp2), perc.over = 200, perc.under = 100)
-newData <- SMOTE(rehosp_oms ~ ., as.data.frame(data_rehosp2), perc.over = 1400, perc.under = 140)
+newData <- SMOTE(rehosp_oms ~ ., as.data.frame(data_rehosp2), perc.over = 100, perc.under = 200)
+#newData <- SMOTE(rehosp_oms ~ ., as.data.frame(data_rehosp2), perc.over = 1400, perc.under = 140)
 
 table(newData$rehosp_oms)
 prop.table(table(newData$rehosp_oms))
