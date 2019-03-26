@@ -325,14 +325,10 @@ p14 <- mygeom_bar(mydata = data_rehosp,
                   my_angle = NULL,
                   my_legend = "bottom")
 
-
-
 grid.arrange(p12,
              p14,
-             p11,
             ncol = 2,
-            nrow = 2,
-            layout_matrix = cbind(c(1,1), c(2,3)))
+            nrow = 1)
 ```
 
 ```{r, warning = FALSE, message = FALSE, echo = FALSE, eval = FALSE}
@@ -465,6 +461,7 @@ prop.table(table(data_rehosp$rehosp_oms))
 table(data_rehosp$rehosp_oms)
 
 data_rehosp2 <- data_rehosp
+class(data_rehosp2)
 str(data_rehosp2)
 
 data_rehosp2 %>%
@@ -482,4 +479,10 @@ newData <- SMOTE(rehosp_oms ~ ., as.data.frame(data_rehosp2), perc.over = 100, p
 table(newData$rehosp_oms)
 prop.table(table(newData$rehosp_oms))
 head(newData)
+head(data_rehosp)
+
+newData <- tbl_df(newData)
+
+class(newData)
+class(data_rehosp)
 ```
