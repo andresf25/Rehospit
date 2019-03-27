@@ -169,7 +169,9 @@ data_rehosp %>%
          ciudad = as.factor(ciudad),
          quirur = as.factor(quirur),
          proveedor = as.factor(proveedor),
-         ramo = as.factor(ramo)) %>%
+         ramo = as.factor(ramo),
+         edad = as.factor(edad),
+         estrato = as.factor(estrato)) %>%
   select(-diagnos, -categoria) -> data_rehosp
 
 str(data_rehosp)
@@ -249,7 +251,7 @@ p5 <- myboxplot(mydata = data_rehosp,
                 mylabel_y = "Dias hospitalización", 
                 my_fill = "")
 
-p6 <- myboxplot(mydata = data_rehosp, 
+p6 <- myboxplot(mydata = z, 
                 myexposure = "rehosp_oms", 
                 myoutcome = "dias_uci", 
                 mytitle =  "Total días UCI", 
@@ -269,6 +271,37 @@ grid.arrange(p5, p6, p7,
              ncol = 2, 
              nrow = 2)
 ```
+
+Con el análisis anterior no sólo se logra identificar variables con presencia de valores atípics, sino que también es posible evidenciar que los datos se encuentran altamente desbalanceados. Por ende, antes de continur con la exploración de los datos se procede a tratar ambos problemas. En el caso de los outliers se truncará en los casos en que sea necesario, imputando los valores que superen cierto límite en el percntil, tanto mayor como menor.
+
+```{r}
+data_rehosp %>%
+  mutate(marcas = outlier(mydata = ., 
+                          value = "marcas", 
+                          q_min = 0.05, q_max = 0.95),
+         pago_hosp = outlier(mydata = ., 
+                             value = "pago_hosp", 
+                             q_min = 0.05, q_max = 0.95),
+         dias_hosp = outlier(mydata = ., 
+                             value = "dias_hosp",
+                             q_min = 0.05, q_max = 0.95),
+         dias_uci = outlier(mydata = ., 
+                            value = "dias_uci", 
+                            q_min = 0.01, q_max = 0.99),
+         dias_uce = outlier(mydata = ., 
+                            value = "dias_uce", 
+                            q_min = 0.01, q_max = 0.99)) -> data_rehosp
+
+filter(data_rehosp, dias_uci > 0) -> z
+
+z$dias_uci = outlier(z, "dias_uci", 0.05,0.95)
+
+quantile(z$dias_uci, 
+         c(0.01,0.99), 
+         na.rm = TRUE)
+
+```
+
 
 <br><h4>Análisis univariado - variables cardinales</h4>
 
@@ -358,31 +391,6 @@ p16 <- mygeom_bar(mydata = data_rehosp,
 
 grid.arrange(p15, p16)
 ```
-
-Con el análisis anterior no sólo se logra identificar variables con presencia de valores atípics, sino que también es posible evidenciar que los datos se encuentran altamente desbalanceados. Por ende, antes de continur con la exploración de los datos se procede a tratar ambos problemas. En el caso de los outliers se truncará en los casos en que sea necesario, imputando los valores que superen cierto límite en el percntil, tanto mayor como menor.
-
-```{r}
-data_rehosp %>%
-  mutate(marcas = outlier(x = ., 
-                          value = marcas, 
-                          q1 = 0.05, q2 = 0.95),
-         pago_hosp = outlier(x = ., 
-                             value = pago_hosp, 
-                             q1 = 0.05,q2 = 0.95),
-         dias_hosp = outlier(x = ., 
-                             value = dias_hosp,
-                             q1 = 0.05,q2 = 0.95),
-         dias_uci = outlier(x = ., 
-                            value = dias_uci, 
-                            q1 = 0.05,q2 = 0.95),
-         dias_uce = outlier(x = ., 
-                            value = dias_uce, 
-                            q1 = 0.05,q2 = 0.95))
-
-```
-
-
-
 
 Con el objetivo de enriquecer el análisis exploratorio, se calcularán dos medidas muy comúnes de la teoría de la información, éstas permiten inferir algo del poder predictivo que pueden tener las variables independientes, antes de hacer parte de un modelo.
 

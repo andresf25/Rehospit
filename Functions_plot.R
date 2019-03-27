@@ -83,27 +83,28 @@ mygeom_bar <- function(mydata, myexposure, myoutcome, mytitle, mylabel_x, mylabe
 }
 
 
-outlier <- function(x, value, q1, q2){
+outlier <- function(mydata, value, q_min, q_max){
   
   
   ##########################################################
   ##########################################################
-  #### Modifica el anio base de la inflaci?n         #######
-  #### con base al periodo empleado.                 #######
-  #### Recibe los siguientes par?metros:             #######
-  #### data = Dtaframe con los datos mensuales       #######
-  #### variable = serie historica de la inflaci?n    #######
-  #### fecha = periodo de tiempo empleado            #######
-  #### per_bef = periodo de la base anterior         ####### 
-  #### per_aft = periodo de la nueva base            #######
+  #### Imputa los outliers de las variables          #######
+  #### numéricas y los reemplaza por la media,       #######
+  #### seleccionando los valores que estén por encima#######
+  #### y por debajo de los percentiles límites.      #######
+  #### Recibe los siguientes parámetros:             #######
+  #### mydata = Dtaframe con los datos mensuales     #######
+  #### value = variable o aributo                    #######
+  #### q_min = valor del pecentil mínimo             #######
+  #### q_max = valor del pecentil máximo             ####### 
   ##########################################################
   ##########################################################
   
-  quantiles <- quantile(x[[value]], 
-                        c(q1,q2), 
+  quantiles <- quantile(mydata[[value]], 
+                        c(q_min,q_max), 
                         na.rm = TRUE)
-  ifelse(x[[value]] < quantiles[1] | x[[value]] > quantiles[2], 
-         mean(x[[value]]), 
-         x[[value]])
+  ifelse(mydata[[value]] < quantiles[1] | mydata[[value]] > quantiles[2], 
+         ceiling(mean(mydata[[value]])), 
+         mydata[[value]])
 }
 
