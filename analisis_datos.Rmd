@@ -151,6 +151,7 @@ Dado que con la anterior matrix a un nivel de significancia del 5% se comprueba 
 <br><h4>Visualizando Asociaciones en los datos</h4>
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
+
 ggplot(
   data_rehosp,
   aes(x = dias_hosp,
@@ -162,6 +163,7 @@ ggplot(
   theme_light() +
   scale_colour_manual(values = c("#99CCFF", "#0066CC"))  +
   theme(plot.title = element_text(hjust = 0.5), legend.position = "none") -> p1
+
 
 ggplot(
   data_rehosp,
@@ -280,7 +282,7 @@ Los datos se encuentran bastante dispersos y reflejan presencia de outliers.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
-p5 <- myboxplot(mydata = data_rehosp, 
+p5 <- myboxplot(mydata = filter(data_rehosp, pago_hosp > 0), 
                 myexposure = "rehosp_oms", 
                 myoutcome = "pago_hosp", 
                 mytitle = "Pago hospitalización", 
@@ -296,7 +298,7 @@ p6 <- myboxplot(mydata = data_rehosp,
                 mylabel_y = "Dias hospitalización", 
                 my_fill = "")
 
-p7 <- myboxplot(mydata = data_rehosp, 
+p7 <- myboxplot(mydata = filter(data_rehosp, dias_uci > 0), 
                 myexposure = "rehosp_oms", 
                 myoutcome = "dias_uci", 
                 mytitle =  "Total días UCI", 
@@ -304,7 +306,7 @@ p7 <- myboxplot(mydata = data_rehosp,
                 mylabel_y = "Dias UCI", 
                 my_fill = "")
 
-p8 <- myboxplot(mydata = data_rehosp, 
+p8 <- myboxplot(mydata = filter(data_rehosp, dias_uce > 0), 
                 myexposure = "rehosp_oms", 
                 myoutcome = "dias_uce", 
                 mytitle = "Total días UCE", 
@@ -323,12 +325,15 @@ Con el análisis anterior no sólo se logra identificar variables con presencia 
 
 ```{r}
 data_rehosp %>%
-  mutate(pago_hosp = outlier(mydata = ., 
-                             value = "pago_hosp", 
-                             q_min = 0.05, q_max = 0.95),
+  mutate(pago_hosp = ifelse(quirur == "Si", outlier(mydata = ., 
+                                                    value = "pago_hosp", 
+                                                    q_min = 0.01, q_max = 0.99), pago_hosp),
+         pago_hosp = ifelse(quirur == "No", outlier(mydata = ., 
+                                                    value = "pago_hosp", 
+                                                    q_min = 0.01, q_max = 0.99), pago_hosp),
          dias_hosp = outlier(mydata = ., 
                              value = "dias_hosp",
-                             q_min = 0.05, q_max = 0.95),
+                             q_min = 0.01, q_max = 0.99),
          dias_uci = outlier(mydata = ., 
                             value = "dias_uci", 
                             q_min = 0.01, q_max = 0.99),
@@ -336,11 +341,11 @@ data_rehosp %>%
                             value = "dias_uce", 
                             q_min = 0.01, q_max = 0.99)) -> data_rehosp
 
-filter(data_rehosp, dias_uci > 0) -> z
+filter(data_rehosp, quirur == "No") -> z
 
-z$dias_uci = outlier(z, "dias_uci", 0.05,0.95)
+z$pago_hosp = outlier(z, "pago_hosp", 0.01, 0.99)
 
-quantile(z$dias_uci, 
+quantile(z$pago_hosp, 
          c(0.01,0.99), 
          na.rm = TRUE)
 
@@ -448,10 +453,9 @@ grid.arrange(p15,
             ncol = 2,
             nrow = 2,
             layout_matrix = rbind(c(1,2), c(3,3)))
-
 ```
 
-Con el análisis anterior no sólo se logra identificar variables con presencia de valores atípics, sino que también es posible evidenciar que los datos se encuentran altamente desbalanceados. Por ende, antes de continur con la exploración de los datos se procede a tratar ambos problemas. En el caso de los outliers se truncará en los casos en que sea necesario, imputando los valores que superen cierto límite en el percntil, tanto mayor como menor.
+Con el análisis anterior no sólo se logra identificar variables con presencia de valores atípicos, sino que también es posible evidenciar que los datos se encuentran altamente desbalanceados. Por ende, antes de continur con la exploración de los datos se procede a tratar ambos problemas. En el caso de los outliers se truncará en los casos en que sea necesario, imputando los valores que superen cierto límite en el percntil, tanto mayor como menor.
 
 Con el objetivo de enriquecer el análisis exploratorio, se calcularán dos medidas muy comúnes de la teoría de la información, éstas permiten inferir algo del poder predictivo que pueden tener las variables independientes, antes de hacer parte de un modelo.
 
@@ -492,7 +496,7 @@ kable_styling(kable(IV$Summary),
 Enfocandonos en el pago del diagnóstico, el cual, es la variable con mayor influencia, el WOE nos indica una relación no lineal. con un incremento en el WOE a medida que disminuye el rango de pago en el diagnóstico. 
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
-kable_styling(kable(IV$Tables$pago_hosp1), 
+kable_styling(kable(IV$Tables$pago_hosp), 
               position = "center", 
               row_label_position = 1,
               full_width = F)
@@ -518,7 +522,6 @@ prop.table(table(data_rehosp$rehosp_oms))
 table(data_rehosp$rehosp_oms)
 
 data_rehosp2 <- data_rehosp
-class(data_rehosp2)
 str(data_rehosp2)
 
 data_rehosp2 %>%
@@ -530,7 +533,8 @@ data_rehosp2$estrato <- as.factor(data_rehosp2$estrato)
 
 ## Smote : Synthetic Minority Oversampling Technique To Handle Class Imbalancy In Binary Classification
 ## now using SMOTE to create a more "balanced problem"
-newData <- SMOTE(rehosp_oms ~ ., as.data.frame(data_rehosp2), perc.over = 100, perc.under = 200)
+newData <- SMOTE(rehosp_oms ~ ., as.data.frame(data_rehosp2), perc.over = 300, perc.under = 200)
+#newData <- SMOTE(rehosp_oms ~ ., as.data.frame(data_rehosp2), perc.over = 100, perc.under = 200)
 #newData <- SMOTE(rehosp_oms ~ ., as.data.frame(data_rehosp2), perc.over = 1400, perc.under = 140)
 
 table(newData$rehosp_oms)
