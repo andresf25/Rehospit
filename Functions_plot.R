@@ -110,3 +110,8 @@ outlier <- function(mydata, value, q_min, q_max){
          ceiling(mean(mydata[[value]])), 
          mydata[[value]])
 }
+
+
+
+
+

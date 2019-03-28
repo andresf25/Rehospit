@@ -11,7 +11,7 @@ El objetivo es desarrollar e implementar un modelo de predicción de rehospitali
 rm(list = ls())
 options(scipen=10)
 source("functions_plot.R")
-list.of.packages <- c("readxl", "dplyr", "ggplot2", "ggcorrplot", "VIM", "RColorBrewer", "Information", "knitr", "kableExtra", "gridExtra", "skimr")
+list.of.packages <- c("readxl", "dplyr", "ggplot2", "ggcorrplot", "VIM", "RColorBrewer", "Information", "knitr", "kableExtra", "gridExtra", "skimr", "nortest", "GGally")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 
@@ -20,7 +20,7 @@ load <- lapply(list.of.packages, library, character.only = TRUE)
 
 <h3>Entendimiento de los Datos</h3>
 
-El archivo contiene registros que corresponden a eventos de rehospitalizaciones y se encuentra detallado a nivel de cada evento hospitalario. En total son 34898 registros, 18 variables, descartando de manera inicial, aquellos atributos que se derivan después del segundo diagnóstico.los datos se describen a continuación:
+El archivo contiene registros que corresponden a eventos de rehospitalizaciones y se encuentra detallado a nivel de cada evento hospitalario. En total son 34898 registros, 18 variables, descartando de manera inicial, aquellos atributos que se derivan después del segundo diagnóstico; los datos se describen a continuación:
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 data_rehosp <- read_xlsx("DATA_REHOSP.xlsx",na = c("na", "NA", "null", "NULL"))
@@ -64,32 +64,32 @@ data_rehosp %>%
 head(data_rehosp)
 ```
 
-Variables continuas (5):
+Variables continuas (4):
 
-* <b>marcas:</b> Cantidad de marcas confirmadas del asegurado
-* <b>dias_hosp:</b> Dias de hospitalización
-* <b>dias_uci:</b> Número dias en uci
-* <b>dias_uce:</b> Número dias en uce
-* <b>pago_hosp:</b> Valor pagado primera hospitalización
+* <b>dias_hosp:</b> días de hospitalización
+* <b>dias_uci:</b> número días en UCI
+* <b>dias_uce:</b> número días en UCE
+* <b>pago_hosp:</b> valor pagado primera hospitalización
 
 Variables nominales (5):
 
-* <b>estrato:</b> Estrato Vivienda (0,1,2,3,4,5,6,-1)
-* <b>est_civil:</b> Estado civil (C,D,S,U,V,-1)
-* <b>ciudad:</b> Ciudad de contacto del asegurado
-* <b>diagnos:</b> Codigo Diagnóstico de la primera atención -cie10 
-* <b>categoria:</b> Categoría del diagnóstico según el tipo de enfermedad
+* <b>estrato:</b> estrato Vivienda (0,1,2,3,4,5,6,-1)
+* <b>est_civil:</b> estado civil (C,D,S,U,V,-1)
+* <b>ciudad:</b> ciudad de contacto del asegurado
+* <b>diagnos:</b> código diagnóstico de la primera atención -cie10 
+* <b>categoria:</b> categoría del diagnóstico según el tipo de enfermedad
 
 Variable dicotómica (4):
 
-* <b>genero:</b> Género del asegurado (M,F)
-* <b>ramo:</b> Ramo al que pertenece el asegurado
+* <b>genero:</b> género del asegurado (M,F)
+* <b>ramo:</b> ramo al que pertenece el asegurado
 * <b>quirur:</b> Si tuvo algun tipo de servicio relacionado a procedimiento quirúrgico
-* <b>rehosp_cat_oms: Similitud categoría cie10. Esta es nuestra variable objetivo</b>
+* <b>rehosp_cat_oms: similitud categoría cie10. Esta es nuestra variable objetivo</b>
 
-Variables discretas (1):
+Variables discretas (2):
 
-<b>edad:</b> Edad del asegurado en el momento de la hospitalización
+* <b>edad:</b> edad del asegurado en el momento de la hospitalización
+* <b>marcas:</b> cantidad de marcas confirmadas del asegurado
 
 Variables ordinales (1):
 
@@ -97,7 +97,7 @@ Variables ordinales (1):
 
 Fecha (1):
 
-<b>Fecha_Ingreso:</b> Fecha ingreso hospitalización 
+<b>Fecha_Ingreso:</b> fecha ingreso hospitalización 
 
 Generamos la estadística descriptiva de los datos; en ella se puede visualizar que es necesario realizar más adelante algunas conversiones en los tipos de datos que vienen por defecto (por ejemplo el estrato aparece como una variable numérica). Pero antes de continuar con la codificación, procederemos a realizar un breve análisis de valores pérdidos que nos permitan refinar la limpieza requerida en los datos.
 
@@ -148,7 +148,99 @@ ggcorrplot(corr_miss,
 
 Dado que con la anterior matrix a un nivel de significancia del 5% se comprueba la hipótesis inicial de no aleatoriedad, se procede a construir una tercera categoría para cada una de las variables que posee campos vacíos.
 
-La variable categoría y diagnóstico están altamente correlacionadas con la variable endógena, se procede a eliminarlas del análisis para no incurrir en posibles sobreajustes en la etapa de modelado.
+<br><h4>Visualizando Asociaciones en los datos</h4>
+
+```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
+ggplot(
+  data_rehosp,
+  aes(x = dias_hosp,
+      y = pago_hosp)) + 
+  geom_point(aes(color = as.factor(rehosp_oms))) + 
+  labs(title = "Pago vs Días Hospitalizado",
+       x = "Total Días", 
+       y = "Pago") +
+  theme_light() +
+  scale_colour_manual(values = c("#99CCFF", "#0066CC"))  +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "none") -> p1
+
+ggplot(
+  data_rehosp,
+  aes(x = dias_uce,
+      y = dias_uci,
+      color = as.factor(rehosp_oms))) + 
+  geom_point() + 
+  labs(title = "Días Internado en UCE vs UCI",
+       x = "Días UCE", 
+       y = "Días UCI",
+       fill = "Rehospitalización") +
+  theme_light() +
+  scale_colour_manual(values = c("#99CCFF", "#0066CC"))  +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "none") -> p2
+
+ggplot(
+  data_rehosp,
+  aes(x = dias_uci,
+      y = pago_hosp,
+      color = as.factor(rehosp_oms))) + 
+  geom_point() + 
+  labs(title = "Pago vs Días UCI",
+       x = "Días UCI", 
+       y = "Pago",
+       fill = "Rehospitalización") +
+  theme_light() +
+  scale_colour_manual(values = c("#99CCFF", "#0066CC"))  +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "none") -> p3
+
+ggplot(
+  data_rehosp,
+  aes(x = dias_uce,
+      y = pago_hosp,
+      color = as.factor(rehosp_oms))) + 
+  geom_point() + 
+  labs(title = "Pago vs Días UCI",
+       x = "Días UCE", 
+       y = "pago",
+       fill = "Rehospitalización") +
+  theme_light() +
+  scale_colour_manual(values = c("#99CCFF", "#0066CC"))  +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "none") -> p4
+
+grid.arrange(p1, p2, p3, p4, nrow =2, ncol = 2 )
+```
+
+Para estimar si existe una asociación entre las variables que pueda derivarse en colinealidad, se procede primero a verificar que las variables no poseen una distribución normal, una vez realizado esto, se elige el test de Spearman para hallar la correlación lineal por atributo.
+
+```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
+data_rehosp %>%
+  select(pago_hosp, 
+         dias_uci,
+         dias_uce,
+         dias_hosp,
+         rehosp_oms) -> data_num
+
+norm_test <- lapply(data_num, lillie.test)
+lres <- sapply(norm_test, `[`, c("statistic","p.value"))
+t(lres)
+```
+
+Los resultados confirman que ninguna de las variables pesenta una distribución normal y las correlaciones relacionadas a continuación, verifican posibles asociaciones entre las variables de los días en que el paciente estuvo internado en la Unidad de Cuidados Intensivos, en la Unidad de Cuidados Especiales y los días que el paciente estuvo hospitalizado. Por conocimiento de facto, la relación entre la variable "dias_uci" y "dias_uce" es entendible, ya que cuando un paciente que ha pasado por la Unidad de Cuidados Intensivos pasó su momento de crisis y su estado de salud es más estable, suele ser remitido a la Unidad de Cuidados Especiales. 
+
+```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
+corr_num <- round(cor(data_num),4)
+p.mat <- cor_pmat(data_num, method = "spearman")
+
+ggcorrplot(corr_num, 
+           type = "lower",
+           outline.col = "white",
+           p.mat = p.mat,
+           sig.level = 0.05,
+           ggtheme = ggplot2::theme_minimal,
+           lab = TRUE,
+           colors = c("#99CCFF", "white", "#0066CC")) + 
+  labs(title = "Correlacion entre variables numéricas")
+```
+
+Las correlaciones obtenidas no cumplen un umbral suficiente para considerarlas importantes, por ende se procede a conservarlas y evaluar más adelante si es preciso eliminarlas definitivamente al construir un modelo con fines predictivos. Por otro lado, la variable categoría y diagnóstico están altamente correlacionadas con la variable endógena, por lo que es necesario eliminarlas del análisis, para no incurrir en posibles sobreajustes en la etapa de modelado.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 data_rehosp %>%
@@ -163,6 +255,7 @@ data_rehosp %>%
                            edad >= 61 & edad <= 70 ~ "61-70",
                            edad >= 71 & edad <= 80 ~ "71-80",
                            edad >= 81 ~ "81+"),
+         marcas = cut(marcas, breaks = (0:3)*2, include.lowest = TRUE),
          est_civil = as.factor(est_civil),
          ingreso = as.factor(ingreso),
          genero = as.factor(genero),
@@ -172,7 +265,7 @@ data_rehosp %>%
          ramo = as.factor(ramo),
          edad = as.factor(edad),
          estrato = as.factor(estrato)) %>%
-  select(-diagnos, -categoria) -> data_rehosp
+  select(-diagnos, -categoria, -fecha_ingreso) -> data_rehosp
 
 str(data_rehosp)
 ```
@@ -187,63 +280,15 @@ Los datos se encuentran bastante dispersos y reflejan presencia de outliers.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
-p1 <- myboxplot(mydata = data_rehosp, 
-                myexposure = "rehosp_oms", 
-                myoutcome = "marcas", 
-                mytitle = "", 
-                mylabel_x = "Rehospitalización", 
-                mylabel_y = "Marcas", 
-                my_fill = "Rehospitalización")
-
-p2 <- myboxplot(mydata = data_rehosp, 
+p5 <- myboxplot(mydata = data_rehosp, 
                 myexposure = "rehosp_oms", 
                 myoutcome = "pago_hosp", 
-                mytitle = "", 
-                mylabel_x = "Rehospitalización", 
+                mytitle = "Pago hospitalización", 
+                mylabel_x = "", 
                 mylabel_y = "Pago Diag", 
                 my_fill = "")
 
-ggplot(
-  data_rehosp, 
-  aes(x = marcas, 
-      color =  as.factor(rehosp_oms), 
-      shape = as.factor(rehosp_oms))) + 
-  geom_density() +
-  labs(title="Total de marcas",
-       x = "", 
-       y = "Frecuencia") +
-  theme_light() + 
-  theme(plot.title = element_text(hjust = 0.5),legend.position = "none") +
-  scale_colour_manual(values = c("#99CCFF", "#0066CC")) -> p3
-
-ggplot(
-  data_rehosp, 
-  aes(x = pago_hosp, 
-      color =  as.factor(rehosp_oms), 
-      shape = as.factor(rehosp_oms))) + 
-  geom_histogram(alpha = .2,
-                 fill= "white", 
-                 position = "identity",
-                 size = 0.8) + 
-  labs(title = "Pago primer diágnóstico",
-       x = "", 
-       y = "Frecuencia") +
-  theme_light() + 
-  theme(plot.title = element_text(hjust = 0.5),legend.position = "none") +
-  scale_colour_manual(values = c("#99CCFF", "#0066CC")) -> p4
-
-
-grid.arrange(p3, p4, p1, p2, nrow = 2, ncol = 2)
-```
-
-Es evidente la existencia también, de valores atípicos muy marcados tanto en el numéro de días de hospitalización, como en los números de días que el paciente estuvo en la Unidad de Cuidado Intensivo y Especial, en dónde los valores atípicos más grandes suceden en los eventos que terminaron en rehospitalización.
-
-Cabe anotar, que puede existir una colinealidad entre la vaiable días UCE y UCI que debe ser validada más adelante, ya que los pacientes que pasaron por un momento de crisis en la UCI, suelen ser luego remitidos a la UCE cuando sus signos vitales se encuentran más estables y están en proceso de mejora.
-
-
-```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
-
-p5 <- myboxplot(mydata = data_rehosp, 
+p6 <- myboxplot(mydata = data_rehosp, 
                 myexposure = "rehosp_oms", 
                 myoutcome = "dias_hosp", 
                 mytitle = "Total dias hospitalizado", 
@@ -251,7 +296,7 @@ p5 <- myboxplot(mydata = data_rehosp,
                 mylabel_y = "Dias hospitalización", 
                 my_fill = "")
 
-p6 <- myboxplot(mydata = z, 
+p7 <- myboxplot(mydata = data_rehosp, 
                 myexposure = "rehosp_oms", 
                 myoutcome = "dias_uci", 
                 mytitle =  "Total días UCI", 
@@ -259,7 +304,7 @@ p6 <- myboxplot(mydata = z,
                 mylabel_y = "Dias UCI", 
                 my_fill = "")
 
-p7 <- myboxplot(mydata = data_rehosp, 
+p8 <- myboxplot(mydata = data_rehosp, 
                 myexposure = "rehosp_oms", 
                 myoutcome = "dias_uce", 
                 mytitle = "Total días UCE", 
@@ -267,19 +312,18 @@ p7 <- myboxplot(mydata = data_rehosp,
                 mylabel_y = "Dias UCE", 
                 my_fill = "")
 
-grid.arrange(p5, p6, p7,
-             ncol = 2, 
-             nrow = 2)
+grid.arrange(p5, p6, p7, p8,
+             nrow = 2,
+             ncol = 2)
 ```
 
-Con el análisis anterior no sólo se logra identificar variables con presencia de valores atípics, sino que también es posible evidenciar que los datos se encuentran altamente desbalanceados. Por ende, antes de continur con la exploración de los datos se procede a tratar ambos problemas. En el caso de los outliers se truncará en los casos en que sea necesario, imputando los valores que superen cierto límite en el percntil, tanto mayor como menor.
+Es evidente la existencia también, de valores atípicos muy marcados tanto en el numéro de días de hospitalización, como en los números de días que el paciente estuvo en la Unidad de Cuidado Intensivo y Especial, en dónde los valores atípicos más grandes suceden en los eventos que terminaron en rehospitalización.
+
+Con el análisis anterior no sólo se logra identificar variables con presencia de valores atípicos, sino que también es posible evidenciar que los datos se encuentran altamente desbalanceados. Por ende, antes de continur con la exploración de los datos se procede a tratar ambos problemas. En el caso de los outliers se truncará en los casos en que sea necesario, imputando los valores que superen cierto límite en el percntil, tanto mayor como menor.
 
 ```{r}
 data_rehosp %>%
-  mutate(marcas = outlier(mydata = ., 
-                          value = "marcas", 
-                          q_min = 0.05, q_max = 0.95),
-         pago_hosp = outlier(mydata = ., 
+  mutate(pago_hosp = outlier(mydata = ., 
                              value = "pago_hosp", 
                              q_min = 0.05, q_max = 0.95),
          dias_hosp = outlier(mydata = ., 
@@ -407,31 +451,8 @@ grid.arrange(p15,
 
 ```
 
-<<<<<<< HEAD
-=======
 Con el análisis anterior no sólo se logra identificar variables con presencia de valores atípics, sino que también es posible evidenciar que los datos se encuentran altamente desbalanceados. Por ende, antes de continur con la exploración de los datos se procede a tratar ambos problemas. En el caso de los outliers se truncará en los casos en que sea necesario, imputando los valores que superen cierto límite en el percntil, tanto mayor como menor.
 
-```{r}
-data_rehosp %>%
-  mutate(marcas = outlier(x = ., 
-                          value = marcas, 
-                          q1 = 0.05, q2 = 0.95),
-         pago_hosp = outlier(x = ., 
-                             value = pago_hosp, 
-                             q1 = 0.05,q2 = 0.95),
-         dias_hosp = outlier(x = ., 
-                             value = dias_hosp,
-                             q1 = 0.05,q2 = 0.95),
-         dias_uci = outlier(x = ., 
-                            value = dias_uci, 
-                            q1 = 0.05,q2 = 0.95),
-         dias_uce = outlier(x = ., 
-                            value = dias_uce, 
-                            q1 = 0.05,q2 = 0.95))
-```
-
-
->>>>>>> 30011ead87ec4416e6e679614ea47cbe644cfb8e
 Con el objetivo de enriquecer el análisis exploratorio, se calcularán dos medidas muy comúnes de la teoría de la información, éstas permiten inferir algo del poder predictivo que pueden tener las variables independientes, antes de hacer parte de un modelo.
 
 <br><h4>Análisis de clasificación binaria usando WOE y el IV</h4>
