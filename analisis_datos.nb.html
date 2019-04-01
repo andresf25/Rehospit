@@ -427,18 +427,30 @@ Análisis univariado - variables continuas
 <p>Con el análisis anterior no sólo se logra identificar variables con presencia de valores atípicos, sino que también es posible evidenciar que los datos se encuentran altamente desbalanceados. Por ende, antes de continur con la exploración de los datos se procede a tratar ambos problemas. En el caso de los outliers se truncará en los casos en que sea necesario, imputando los valores que superen cierto límite en el percntil, tanto mayor como menor.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZmlsdGVyKGRhdGFfcmVob3NwLCBkaWFzX3VjaSA+IDApIC0+IHpcbnokZGlhc191Y2kgPSBvdXRsaWVyKHosIFwiZGlhc191Y2lcIiwgMC4wNSwwLjk1KVxucXVhbnRpbGUoeiRkaWFzX3VjaSwgXG4gICAgICAgICBjKDAuMDEsMC45OSksIFxuICAgICAgICAgbmEucm0gPSBUUlVFKVxuXG5gYGAifQ== -->
-<pre class="r"><code>filter(data_rehosp, dias_uci &gt; 0) -&gt; z
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZGF0YV9yZWhvc3AgJT4lXG4gIG11dGF0ZShwYWdvX2hvc3AgPSBvdXRsaWVyKG15ZGF0YSA9IC4sIFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICB2YWx1ZSA9IFwicGFnb19ob3NwXCIsIFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICBxX21pbiA9IDAuMDUsIHFfbWF4ID0gMC45NSksXG4gICAgICAgICBkaWFzX2hvc3AgPSBvdXRsaWVyKG15ZGF0YSA9IC4sIFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICB2YWx1ZSA9IFwiZGlhc19ob3NwXCIsXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgIHFfbWluID0gMC4wNSwgcV9tYXggPSAwLjk1KSxcbiAgICAgICAgIGRpYXNfdWNpID0gb3V0bGllcihteWRhdGEgPSAuLCBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICB2YWx1ZSA9IFwiZGlhc191Y2lcIiwgXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgcV9taW4gPSAwLjAxLCBxX21heCA9IDAuOTkpLFxuICAgICAgICAgZGlhc191Y2UgPSBvdXRsaWVyKG15ZGF0YSA9IC4sIFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgIHZhbHVlID0gXCJkaWFzX3VjZVwiLCBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBxX21pbiA9IDAuMDEsIHFfbWF4ID0gMC45OSkpIC0+IGRhdGFfcmVob3NwXG5cbmZpbHRlcihkYXRhX3JlaG9zcCwgZGlhc191Y2kgPiAwKSAtPiB6XG5cbnokZGlhc191Y2kgPSBvdXRsaWVyKHosIFwiZGlhc191Y2lcIiwgMC4wNSwwLjk1KVxuXG5xdWFudGlsZSh6JGRpYXNfdWNpLCBcbiAgICAgICAgIGMoMC4wMSwwLjk5KSwgXG4gICAgICAgICBuYS5ybSA9IFRSVUUpXG5cbmBgYCJ9 -->
+<pre class="r"><code>data_rehosp %&gt;%
+  mutate(pago_hosp = outlier(mydata = ., 
+                             value = &quot;pago_hosp&quot;, 
+                             q_min = 0.05, q_max = 0.95),
+         dias_hosp = outlier(mydata = ., 
+                             value = &quot;dias_hosp&quot;,
+                             q_min = 0.05, q_max = 0.95),
+         dias_uci = outlier(mydata = ., 
+                            value = &quot;dias_uci&quot;, 
+                            q_min = 0.01, q_max = 0.99),
+         dias_uce = outlier(mydata = ., 
+                            value = &quot;dias_uce&quot;, 
+                            q_min = 0.01, q_max = 0.99)) -&gt; data_rehosp
+
+filter(data_rehosp, dias_uci &gt; 0) -&gt; z
+
 z$dias_uci = outlier(z, &quot;dias_uci&quot;, 0.05,0.95)
+
 quantile(z$dias_uci, 
          c(0.01,0.99), 
          na.rm = TRUE)
 </code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiICAgMSUgICA5OSUgXG4gMS4wMCAxMy41MyBcbiJ9 -->
-<pre><code>   1%   99% 
- 1.00 13.53 </code></pre>
-<!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <br>
