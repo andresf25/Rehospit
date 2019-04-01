@@ -453,6 +453,7 @@ grid.arrange(p15,
             ncol = 2,
             nrow = 2,
             layout_matrix = rbind(c(1,2), c(3,3)))
+
 ```
 
 Con el análisis anterior no sólo se logra identificar variables con presencia de valores atípicos, sino que también es posible evidenciar que los datos se encuentran altamente desbalanceados. Por ende, antes de continur con la exploración de los datos se procede a tratar ambos problemas. En el caso de los outliers se truncará en los casos en que sea necesario, imputando los valores que superen cierto límite en el percntil, tanto mayor como menor.
@@ -513,7 +514,41 @@ MultiPlot(IV, IV$Summary$Variable[1:9])
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 MultiPlot(IV, IV$Summary$Variable[10:18])
 ```
-ssss
+Pruebas de normalidad
+
+```{r}
+ggplot(data = data_rehosp, aes(x = edad)) +
+  geom_histogram(aes(y = ..density.., fill = ..count..)) +
+  scale_fill_gradient(low = "#DCDCDC", high = "#7C7C7C") +
+  stat_function(fun = dnorm, colour = "firebrick",
+                args = list(mean = mean(data_rehosp$edad),
+                            sd = sd(data_rehosp$edad))) +
+  ggtitle("Histograma + curva normal teórica") +
+  theme_bw()
+
+
+filter(rehospmuestra, dias_uci > 0) -> rehospmuestra
+filter(data_rehosp, dias_uci > 0) -> drehosp_prueb
+
+
+#Muestra sin reemplazo
+rehospmuestra<- data_rehosp %>%
+  sample_n(size=5000,replace=FALSE)
+
+ks.test(data_rehosp$edad, "pnorm", mean=mean(data_rehosp$edad), sd=sd(data_rehosp$edad))
+
+
+library("nortest")
+library("ggplot2")
+
+lillie.test(x = data_rehosp$edad)
+
+library("tseries")
+jarque.bera.test(x = data_rehosp$edad)
+```
+
+
+balanceo de clases
 ```{r}
 ## Loading DMwr to balance the unbalanced class
 library(DMwR)
