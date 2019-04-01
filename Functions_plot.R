@@ -38,8 +38,6 @@ myboxplot <- function(mydata, myexposure, myoutcome, mytitle, mylabel_x, mylabel
 }
 
 
-
-
 mygeom_bar <- function(mydata, myexposure, myoutcome, mytitle, mylabel_x, mylabel_y, my_fill, my_angle, my_legend)
 
 {
