@@ -133,14 +133,14 @@ En la gráfica siguiente podemos observar que hay en total 3 variables que no co
 A nivel individual el porcentaje de valores perdidos para todos los casos es superior al 25%. De forma combinada hay 318 registros vacíos en ingreso, 259 en sólo el estrato y 144 en el estado civil, el resto  de los campos nulos corresponde a combinaciones entre dos variables; por ende no podemos decir que la probabilidad de que falte un valor depende solo del valor observado, y usar un método para imputarlo (la forma no es aleatoria).
 
 ```{r, message = FALSE, warning = FALSE, eval =TRUE, echo = FALSE}
-
 aggr(data_rehosp, 
      combined = FALSE, 
-     numbers = TRUE, 
-     prop = c(TRUE, FALSE),
+     prop = c(TRUE, TRUE),
      col = c("#CCE5FF", "#0066CC"),
      cex.axis = 0.7,
+     gap = 1.5,
      border = NA,
+     bars = FALSE,
      ylab = c("Proporción de Datos Perdidos", "Combinaciones"))
 ```
 
