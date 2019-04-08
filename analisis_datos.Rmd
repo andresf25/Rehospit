@@ -11,7 +11,7 @@ El objetivo es desarrollar e implementar un modelo de predicción de rehospitali
 rm(list = ls())
 options(scipen=10)
 source("functions_plot.R")
-list.of.packages <- c("readxl", "dplyr", "ggplot2", "ggcorrplot", "VIM", "RColorBrewer", "Information", "knitr", "kableExtra", "gridExtra", "skimr", "nortest", "GGally")
+list.of.packages <- c("readxl", "dplyr", "ggplot2", "ggcorrplot", "VIM", "RColorBrewer", "Information", "knitr", "kableExtra", "gridExtra", "skimr", "nortest", "GGally", "plotly")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 
@@ -63,6 +63,23 @@ data_rehosp %>%
          rehosp_oms = rehosp_cat_oms) -> data_rehosp
 head(data_rehosp)
 ```
+
+```{r}
+# data_rehosp %>%
+#   filter(rehosp_oms == 1) %>%
+#   group_by(fecha_ingreso, ciudad) %>%
+#   summarise(pago_hosp = sum(pago_hosp, na.rm = TRUE),
+#             hosp = n()) %>%
+#   plot_ly(data = .) %>%
+#   add_trace(x = ~fecha_ingreso,
+#             y = ~pago_hosp,
+#             group = ~ciudad,
+#             type = "scatter",
+#             mode = "lines",
+#             name = "Pago Hospitalización",
+#             text = ~paste0("<b>Fecha Ingreso: </b>", fecha_ingreso, "<br><b>Pago Hospitalización: </b>", pago_hosp)) %>%
+```
+
 
 Variables continuas (4):
 
