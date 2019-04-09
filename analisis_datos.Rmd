@@ -8,10 +8,15 @@ output: html_notebook
 El objetivo es desarrollar e implementar un modelo de predicción de rehospitalizaciones para apoyar los programas de evitabilidad post-hospitalaria. El análisis se realizará con información que describe las características sociodemográficas del individuo y con algunos datos recolectados por el personal hospitalario para un periodo de tiempo de dos años y medio, que va desde 2016 hasta 2018 </br>
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
+set.seed(1234)
+options(scipen = 10)
 rm(list = ls())
-options(scipen=10)
 source("functions_plot.R")
+<<<<<<< HEAD
 list.of.packages <- c("readxl", "dplyr", "ggplot2", "ggcorrplot", "VIM", "RColorBrewer", "Information", "knitr", "kableExtra", "gridExtra", "skimr", "nortest", "GGally", "plotly", "lattice", "DMwR", "caTools")
+=======
+list.of.packages <- c("readxl", "dplyr", "ggplot2", "ggcorrplot", "VIM", "RColorBrewer", "Information", "knitr", "kableExtra", "gridExtra", "skimr", "nortest", "GGally", "plotly", "DMwR")
+>>>>>>> 7ea3b765665f46e07dc4c56d001a976b41b2c7d6
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 
@@ -493,8 +498,6 @@ El peso de la evidencia (WOE) y el valor de la información (IV) ayudan, entre o
 La tabla a continuación contiene los valores del "valor de la información" con y sin el ajuste derivado de la validación cruzada. Cuando se realiza el ajuste con el objetivo de que los resultados sean más estables, sólo el pago del diagnóstico, si el paciente pasó por la Unidad de cuidados Especiales la primera vez y si fueron realizados procedimientos quirúrgicos serán las únicas variables con suficiente capacidad de predicción a nivel individual y univariable (Iv > 5%). Cuando se relaja el supuesto, IV sin restar el penalty, se incluirían las marcas y la edad y la ciudad.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
-set.seed(1234)
-
 data_rehosp <- data_rehosp %>%
   mutate(id = 1:nrow(.)) 
 
@@ -549,6 +552,7 @@ MultiPlot(IV, IV$Summary$Variable[1:9])
 ```
 Seleccionar variables para modelo
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
+
 data_rehosp %>%
   select(pago_hosp,
         quirur,
@@ -558,6 +562,9 @@ data_rehosp %>%
         dias_hosp,
         estrato,
         rehosp_oms) -> data_rehosp
+
+MultiPlot(IV, IV$Summary$Variable[10:14])
+
 ```
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
@@ -565,6 +572,7 @@ MultiPlot(IV, IV$Summary$Variable[10:18])
 ```
 
 balanceo de clases
+
 
 ```{r}
 set.seed(88)
@@ -621,3 +629,26 @@ plot(ROCRperf, colorize=TRUE)
 plot(ROCRperf, colorize=TRUE, print.cutoffs.at=seq(0,1,by=0.1), text.adj=c(-0.2,1.7))
 
 ```
+
+
+```{r}
+##Estimando el modelo
+data_rehosp %>%
+  sample_frac(size = 0.7) -> training
+
+data_rehosp %>%
+  anti_join(x = .,
+            y = training,
+            by = "id") -> testing
+
+training %>%
+  select(-id) %>%
+  mutate(rehosp_oms = as.factor(rehosp_oms)) -> training
+
+```
+
+```{r}
+library(DMwR)
+training <- SMOTE(rehosp_oms ~ ., as.data.frame(training), perc.over = 300, perc.under = 200)
+```
+
