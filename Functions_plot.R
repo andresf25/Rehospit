@@ -105,7 +105,7 @@ outlier <- function(mydata, value, q_min, q_max){
                         c(q_min,q_max), 
                         na.rm = TRUE)
   ifelse(mydata[[value]] < quantiles[1] | mydata[[value]] > quantiles[2], 
-         ceiling(mean(mydata[[value]])), 
+         ceiling(median(mydata[[value]])), 
          mydata[[value]])
 }
 

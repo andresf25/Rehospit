@@ -9,7 +9,6 @@ El objetivo es desarrollar e implementar un modelo de predicción de rehospitali
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 set.seed(1234)
-options(scipen = 100)
 rm(list = ls())
 source("functions_plot.R")
 
@@ -278,6 +277,13 @@ p8 <- myboxplot(mydata = filter(data_rehosp, dias_uce > 0),
 grid.arrange(p5, p6, p7, p8,
              nrow = 2,
              ncol = 2)
+
+data_rehosp %>%
+  filter(rehosp_oms == "1") %>%
+  ggplot(., aes(x = pago_hosp)) +
+  geom_density()
+
+
 ```
 
 Es evidente la existencia también, de valores atípicos muy marcados tanto en el numéro de días de hospitalización, como en los números de días que el paciente estuvo en la Unidad de Cuidado Intensivo y Especial, en dónde los valores atípicos más grandes suceden en los eventos que terminaron en rehospitalización.
@@ -286,12 +292,12 @@ Con el análisis anterior no sólo se logra identificar variables con presencia 
 
 ```{r}
 data_rehosp %>%
-  mutate(pago_hosp = ifelse(quirur == "Si", outlier(mydata = ., 
+  mutate(pago_hosp = ifelse(quirur == "Si", outlier(mydata = filter(data_rehosp, quirur == "Si"), 
                                                     value = "pago_hosp", 
-                                                    q_min = 0.01, q_max = 0.99), pago_hosp),
-         pago_hosp = ifelse(quirur == "No", outlier(mydata = ., 
+                                                    q_min = 0.99, q_max = 0), pago_hosp),
+         pago_hosp = ifelse(quirur == "No", outlier(mydata = filter(data_rehosp, quirur == "No"), 
                                                     value = "pago_hosp", 
-                                                    q_min = 0.01, q_max = 0.99), pago_hosp),
+                                                    q_min = 0.99, q_max = 0), pago_hosp),
          dias_hosp = outlier(mydata = ., 
                              value = "dias_hosp",
                              q_min = 0.01, q_max = 0.99),
@@ -302,12 +308,11 @@ data_rehosp %>%
                             value = "dias_uce", 
                             q_min = 0, q_max = 0.99)) -> data_rehosp
 
-filter(data_rehosp, quirur == "No") -> z
-
-z$pago_hosp = outlier(z, "pago_hosp", 0.01, 0.99)
-
+ filter(data_rehosp, quirur == "No") -> z
+ z$pago_hosp = outlier(z, "pago_hosp", 0.01, 0.99)
+ 
 quantile(z$pago_hosp, 
-         c(0.01,0.99), 
+         c(0,0.99),
          na.rm = TRUE)
 
 ```
