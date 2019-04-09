@@ -9,14 +9,10 @@ El objetivo es desarrollar e implementar un modelo de predicción de rehospitali
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 set.seed(1234)
-options(scipen = 10)
+options(scipen = 100)
 rm(list = ls())
 source("functions_plot.R")
-<<<<<<< HEAD
-list.of.packages <- c("readxl", "dplyr", "ggplot2", "ggcorrplot", "VIM", "RColorBrewer", "Information", "knitr", "kableExtra", "gridExtra", "skimr", "nortest", "GGally", "plotly", "lattice", "DMwR", "caTools")
-=======
-list.of.packages <- c("readxl", "dplyr", "ggplot2", "ggcorrplot", "VIM", "RColorBrewer", "Information", "knitr", "kableExtra", "gridExtra", "skimr", "nortest", "GGally", "plotly", "DMwR")
->>>>>>> 7ea3b765665f46e07dc4c56d001a976b41b2c7d6
+list.of.packages <- c("readxl", "dplyr", "ggplot2", "ggcorrplot", "VIM", "RColorBrewer", "Information", "knitr", "kableExtra", "gridExtra", "skimr", "nortest", "GGally", "plotly", "lattice", "DMwR", "caTools", "plotly")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 
@@ -84,7 +80,6 @@ head(data_rehosp)
 #             name = "Pago Hospitalización",
 #             text = ~paste0("<b>Fecha Ingreso: </b>", fecha_ingreso, "<br><b>Pago Hospitalización: </b>", pago_hosp)) %>%
 ```
-
 
 Variables continuas (4):
 
@@ -170,67 +165,6 @@ ggcorrplot(corr_miss,
 
 Dado que con la anterior matrix a un nivel de significancia del 5% se comprueba la hipótesis inicial de no aleatoriedad, se procede a construir una tercera categoría para cada una de las variables que posee campos vacíos.
 
-<br><h4>Visualizando Asociaciones en los datos</h4>
-
-```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
-
-ggplot(
-  data_rehosp,
-  aes(x = dias_hosp,
-      y = pago_hosp)) + 
-  geom_point(aes(color = as.factor(rehosp_oms))) + 
-  labs(title = "Pago vs Días Hospitalizado",
-       x = "Total Días", 
-       y = "Pago") +
-  theme_light() +
-  scale_colour_manual(values = c("#99CCFF", "#0066CC"))  +
-  theme(plot.title = element_text(hjust = 0.5), legend.position = "none") -> p1
-
-
-ggplot(
-  data_rehosp,
-  aes(x = dias_uce,
-      y = dias_uci,
-      color = as.factor(rehosp_oms))) + 
-  geom_point() + 
-  labs(title = "Días Internado en UCE vs UCI",
-       x = "Días UCE", 
-       y = "Días UCI",
-       fill = "Rehospitalización") +
-  theme_light() +
-  scale_colour_manual(values = c("#99CCFF", "#0066CC"))  +
-  theme(plot.title = element_text(hjust = 0.5), legend.position = "none") -> p2
-
-ggplot(
-  data_rehosp,
-  aes(x = dias_uci,
-      y = pago_hosp,
-      color = as.factor(rehosp_oms))) + 
-  geom_point() + 
-  labs(title = "Pago vs Días UCI",
-       x = "Días UCI", 
-       y = "Pago",
-       fill = "Rehospitalización") +
-  theme_light() +
-  scale_colour_manual(values = c("#99CCFF", "#0066CC"))  +
-  theme(plot.title = element_text(hjust = 0.5), legend.position = "none") -> p3
-
-ggplot(
-  data_rehosp,
-  aes(x = dias_uce,
-      y = pago_hosp,
-      color = as.factor(rehosp_oms))) + 
-  geom_point() + 
-  labs(title = "Pago vs Días UCI",
-       x = "Días UCE", 
-       y = "pago",
-       fill = "Rehospitalización") +
-  theme_light() +
-  scale_colour_manual(values = c("#99CCFF", "#0066CC"))  +
-  theme(plot.title = element_text(hjust = 0.5), legend.position = "none") -> p4
-
-grid.arrange(p1, p2, p3, p4, nrow =2, ncol = 2 )
-```
 
 Para estimar si existe una asociación entre las variables que pueda derivarse en colinealidad, se procede primero a verificar que las variables no poseen una distribución normal, una vez realizado esto, se elige el test de Spearman para hallar la correlación lineal por atributo.
 
@@ -266,7 +200,10 @@ ggcorrplot(corr_num,
 
 Las correlaciones obtenidas no cumplen un umbral suficiente para considerarlas importantes, por ende se procede a conservarlas y evaluar más adelante si es preciso eliminarlas definitivamente al construir un modelo con fines predictivos. Por otro lado, la variable categoría y diagnóstico están altamente correlacionadas con la variable endógena, por lo que es necesario eliminarlas del análisis, para no incurrir en posibles sobreajustes en la etapa de modelado.
 
+Teniendo en cuenta el análisis de datos perdidos o nulos, se decide descartar la variable ingreso ya que contiene mas de un 30% en datos perdidos.
+
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
+
 data_rehosp %>%
   mutate(estrato = ifelse(is.na(estrato) | estrato == -1 | estrato == 0, "Sin Informacion", estrato),
          est_civil = ifelse(is.na(est_civil), "Sin Informacion", est_civil),
@@ -281,7 +218,6 @@ data_rehosp %>%
                            edad >= 81 ~ "81+"),
          marcas = cut(marcas, breaks = (0:3)*2, include.lowest = TRUE),
          est_civil = as.factor(est_civil),
-         ingreso = as.factor(ingreso),
          genero = as.factor(genero),
          ciudad = as.factor(ciudad),
          quirur = as.factor(quirur),
@@ -289,7 +225,7 @@ data_rehosp %>%
          ramo = as.factor(ramo),
          edad = as.factor(edad),
          estrato = as.factor(estrato)) %>%
-  select(-diagnos, -categoria, -fecha_ingreso) -> data_rehosp
+  select(-diagnos, -categoria, -fecha_ingreso, -ingreso) -> data_rehosp
 
 str(data_rehosp)
 ```
@@ -358,10 +294,10 @@ data_rehosp %>%
                              q_min = 0.01, q_max = 0.99),
          dias_uci = outlier(mydata = ., 
                             value = "dias_uci", 
-                            q_min = 0.01, q_max = 0.99),
+                            q_min = 0, q_max = 0.99),
          dias_uce = outlier(mydata = ., 
                             value = "dias_uce", 
-                            q_min = 0.01, q_max = 0.99)) -> data_rehosp
+                            q_min = 0, q_max = 0.99)) -> data_rehosp
 
 filter(data_rehosp, quirur == "No") -> z
 
