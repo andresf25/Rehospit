@@ -11,7 +11,7 @@ El objetivo es desarrollar e implementar un modelo de predicción de rehospitali
 rm(list = ls())
 options(scipen=10)
 source("functions_plot.R")
-list.of.packages <- c("readxl", "dplyr", "ggplot2", "ggcorrplot", "VIM", "RColorBrewer", "Information", "knitr", "kableExtra", "gridExtra", "skimr", "nortest", "GGally", "plotly")
+list.of.packages <- c("readxl", "dplyr", "ggplot2", "ggcorrplot", "VIM", "RColorBrewer", "Information", "knitr", "kableExtra", "gridExtra", "skimr", "nortest", "GGally", "plotly", "lattice", "DMwR", "caTools")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 
@@ -368,7 +368,6 @@ quantile(z$pago_hosp,
 
 ```
 
-
 <br><h4>Análisis univariado - variables cardinales</h4>
 
 Observando las variables categóricas la diferencia entre la probabilidad de que el evento ocurra (haya rehospitalización) o no, se puede evidenciar sólo en algunas clases por categoría, pero en general, las proporciones suelen ser bastantes similares, por lo que no es posible elaborar a priori una hipótesis que estipule diferencias significativas en las distribuciones, por lo menos para ninguna de las tres variables relacionadas en el gráfico a continuación.
@@ -424,10 +423,22 @@ p14 <- mygeom_bar(mydata = data_rehosp,
                   my_angle = NULL,
                   my_legend = "bottom")
 
+p17 <- mygeom_bar(mydata = data_rehosp, 
+                  myexposure = "marcas", 
+                  myoutcome = "rehosp_oms", 
+                  mytitle = "Marcas", 
+                  mylabel_x = "", 
+                  mylabel_y = "Frecuencia", 
+                  my_fill = "Rehospitalización", 
+                  my_angle = NULL,
+                  my_legend = "bottom")
+
 grid.arrange(p12,
              p14,
+             p17,
             ncol = 2,
-            nrow = 1)
+            nrow = 2,
+            layout_matrix = rbind(c(1,2), c(3,3)))
 ```
 
 ```{r, warning = FALSE, message = FALSE, echo = FALSE, eval = FALSE}
@@ -462,7 +473,6 @@ p11 <- mygeom_bar(mydata = data_rehosp,
                   my_fill = "Rehospitalización", 
                   my_angle = NULL,
                   my_legend = "none")
-
 
 grid.arrange(p15,
              p11,
@@ -511,7 +521,17 @@ kable_styling(kable(IV$Summary),
               full_width = F)
 ```
 
-Enfocandonos en el pago del diagnóstico, el cual, es la variable con mayor influencia, el WOE nos indica una relación no lineal. con un incremento en el WOE a medida que disminuye el rango de pago en el diagnóstico. 
+De acuerdo al poder predictivo de cada una de las variables, se eligen aquellas cuyo Valor de la informaciÓn (IV) sea superior al 2% (0,02). Las variables con IV inferiores a este valor se consideran impredictivas y se decide descartarlas. Las variables que continuan, en orden de relevancia segun su poder predictor, son:
+
+-pago_hosp
+-quirur
+-dias_uce
+-dias_uci
+-proveedor
+-dias_hosp
+-estrato
+
+Enfocandonos en el pago del diagnóstico, el cual, es la variable con mayor influencia, el WOE nos indica una relación no lineal, con un incremento en el WOE a medida que disminuye el rango de pago en el diagnóstico. 
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 kable_styling(kable(IV$Tables$pago_hosp), 
@@ -527,75 +547,77 @@ for (i in 1:length(n)){
 
 MultiPlot(IV, IV$Summary$Variable[1:9])
 ```
+Seleccionar variables para modelo
+```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
+data_rehosp %>%
+  select(pago_hosp,
+        quirur,
+        dias_uce,
+        dias_uci,
+        proveedor,
+        dias_hosp,
+        estrato,
+        rehosp_oms) -> data_rehosp
+```
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 MultiPlot(IV, IV$Summary$Variable[10:18])
 ```
-Pruebas de normalidad
-
-```{r}
-ggplot(data = data_rehosp, aes(x = edad)) +
-  geom_histogram(aes(y = ..density.., fill = ..count..)) +
-  scale_fill_gradient(low = "#DCDCDC", high = "#7C7C7C") +
-  stat_function(fun = dnorm, colour = "firebrick",
-                args = list(mean = mean(data_rehosp$edad),
-                            sd = sd(data_rehosp$edad))) +
-  ggtitle("Histograma + curva normal teórica") +
-  theme_bw()
-
-
-filter(rehospmuestra, dias_uci > 0) -> rehospmuestra
-filter(data_rehosp, dias_uci > 0) -> drehosp_prueb
-
-
-#Muestra sin reemplazo
-rehospmuestra<- data_rehosp %>%
-  sample_n(size=5000,replace=FALSE)
-
-ks.test(data_rehosp$edad, "pnorm", mean=mean(data_rehosp$edad), sd=sd(data_rehosp$edad))
-
-
-library("nortest")
-library("ggplot2")
-
-lillie.test(x = data_rehosp$edad)
-
-library("tseries")
-jarque.bera.test(x = data_rehosp$edad)
-```
-
 
 balanceo de clases
+
 ```{r}
-## Loading DMwr to balance the unbalanced class
-library(DMwR)
+set.seed(88)
+split <- sample.split(data_rehosp$rehosp_oms, SplitRatio = 0.75)
 
-prop.table(table(data_rehosp$rehosp_oms))
-table(data_rehosp$rehosp_oms)
+# Create training and testing sets
+data_rehospTrain = subset(data_rehosp, split == TRUE)
+data_rehospTest = subset(data_rehosp, split == FALSE)
 
-data_rehosp2 <- data_rehosp
-str(data_rehosp2)
+#evidenciando clase desbalanceada
+prop.table(table(data_rehospTrain$rehosp_oms))
+table(data_rehospTrain$rehosp_oms)
 
-data_rehosp2 %>%
-  select(-fecha_ingreso) -> data_rehosp2
-
-data_rehosp2$rehosp_oms <- as.factor(data_rehosp2$rehosp_oms)
-data_rehosp2$edad <- as.factor(data_rehosp2$edad)
-data_rehosp2$estrato <- as.factor(data_rehosp2$estrato)
+data_rehospTrain$rehosp_oms <- as.factor(data_rehospTrain$rehosp_oms)
 
 ## Smote : Synthetic Minority Oversampling Technique To Handle Class Imbalancy In Binary Classification
 ## now using SMOTE to create a more "balanced problem"
-newData <- SMOTE(rehosp_oms ~ ., as.data.frame(data_rehosp2), perc.over = 300, perc.under = 200)
-#newData <- SMOTE(rehosp_oms ~ ., as.data.frame(data_rehosp2), perc.over = 100, perc.under = 200)
-#newData <- SMOTE(rehosp_oms ~ ., as.data.frame(data_rehosp2), perc.over = 1400, perc.under = 140)
+data_rehospTrain <- SMOTE(rehosp_oms ~ ., as.data.frame(data_rehospTrain), perc.over = 300, perc.under = 200)
 
-table(newData$rehosp_oms)
-prop.table(table(newData$rehosp_oms))
-head(newData)
-head(data_rehosp)
+#verificar clase balanceada
+prop.table(table(data_rehospTrain$rehosp_oms))
+table(data_rehospTrain$rehosp_oms)
 
-newData <- tbl_df(newData)
+data_rehospTrain <- na.omit(data_rehospTrain)
+ 
+mylogit <- glm(rehosp_oms ~ pago_hosp + quirur + dias_uce + dias_uci + dias_hosp + estrato, data = data_rehospTrain, family = "binomial")
+ 
+predictTrain = predict(mylogit, type="response")
+ 
+table(data_rehospTrain$rehosp_oms, predictTrain > 0.5)
+ 
+pred <- predict(mylogit, newdata = data_rehospTest, type = "response")
+ 
+y_pred_num <- ifelse(pred > 0.5, 1, 0)
+y_pred <- factor(y_pred_num, levels=c(0, 1))
+y_act <- data_rehospTest$rehosp_oms
+ 
+mean(y_pred == y_act)  # 66%
+ 
+library(ROCR)
+ 
+ 
+ROCRpred = prediction(predictTrain, data_rehospTrain$rehosp_oms)
+ 
+# Performance function
+ROCRperf = performance(ROCRpred, "tpr", "fpr")
+ 
+ 
+# Plot ROC curve
+plot(ROCRperf)
+# Add colors
+plot(ROCRperf, colorize=TRUE)
+# Add threshold labels 
+plot(ROCRperf, colorize=TRUE, print.cutoffs.at=seq(0,1,by=0.1), text.adj=c(-0.2,1.7))
 
-class(newData)
-class(data_rehosp)
 ```
