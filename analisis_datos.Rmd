@@ -8,10 +8,11 @@ output: html_notebook
 El objetivo es desarrollar e implementar un modelo de predicción de rehospitalizaciones para apoyar los programas de evitabilidad post-hospitalaria. El análisis se realizará con información que describe las características sociodemográficas del individuo y con algunos datos recolectados por el personal hospitalario para un periodo de tiempo de dos años y medio, que va desde 2016 hasta 2018 </br>
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
+set.seed(1234)
+options(scipen = 10)
 rm(list = ls())
-options(scipen=10)
 source("functions_plot.R")
-list.of.packages <- c("readxl", "dplyr", "ggplot2", "ggcorrplot", "VIM", "RColorBrewer", "Information", "knitr", "kableExtra", "gridExtra", "skimr", "nortest", "GGally", "plotly")
+list.of.packages <- c("readxl", "dplyr", "ggplot2", "ggcorrplot", "VIM", "RColorBrewer", "Information", "knitr", "kableExtra", "gridExtra", "skimr", "nortest", "GGally", "plotly", "DMwR")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 
@@ -483,8 +484,6 @@ El peso de la evidencia (WOE) y el valor de la información (IV) ayudan, entre o
 La tabla a continuación contiene los valores del "valor de la información" con y sin el ajuste derivado de la validación cruzada. Cuando se realiza el ajuste con el objetivo de que los resultados sean más estables, sólo el pago del diagnóstico, si el paciente pasó por la Unidad de cuidados Especiales la primera vez y si fueron realizados procedimientos quirúrgicos serán las únicas variables con suficiente capacidad de predicción a nivel individual y univariable (Iv > 5%). Cuando se relaja el supuesto, IV sin restar el penalty, se incluirían las marcas y la edad y la ciudad.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
-set.seed(1234)
-
 data_rehosp <- data_rehosp %>%
   mutate(id = 1:nrow(.)) 
 
@@ -529,7 +528,7 @@ MultiPlot(IV, IV$Summary$Variable[1:9])
 ```
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
-MultiPlot(IV, IV$Summary$Variable[10:18])
+MultiPlot(IV, IV$Summary$Variable[10:14])
 ```
 Pruebas de normalidad
 
@@ -568,7 +567,7 @@ jarque.bera.test(x = data_rehosp$edad)
 balanceo de clases
 ```{r}
 ## Loading DMwr to balance the unbalanced class
-library(DMwR)
+
 
 prop.table(table(data_rehosp$rehosp_oms))
 table(data_rehosp$rehosp_oms)
@@ -599,3 +598,26 @@ newData <- tbl_df(newData)
 class(newData)
 class(data_rehosp)
 ```
+
+
+```{r}
+##Estimando el modelo
+data_rehosp %>%
+  sample_frac(size = 0.7) -> training
+
+data_rehosp %>%
+  anti_join(x = .,
+            y = training,
+            by = "id") -> testing
+
+training %>%
+  select(-id) %>%
+  mutate(rehosp_oms = as.factor(rehosp_oms)) -> training
+
+```
+
+```{r}
+library(DMwR)
+training <- SMOTE(rehosp_oms ~ ., as.data.frame(training), perc.over = 300, perc.under = 200)
+```
+
