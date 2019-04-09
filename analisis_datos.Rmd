@@ -12,11 +12,7 @@ set.seed(1234)
 options(scipen = 10)
 rm(list = ls())
 source("functions_plot.R")
-<<<<<<< HEAD
 list.of.packages <- c("readxl", "dplyr", "ggplot2", "ggcorrplot", "VIM", "RColorBrewer", "Information", "knitr", "kableExtra", "gridExtra", "skimr", "nortest", "GGally", "plotly", "lattice", "DMwR", "caTools")
-=======
-list.of.packages <- c("readxl", "dplyr", "ggplot2", "ggcorrplot", "VIM", "RColorBrewer", "Information", "knitr", "kableExtra", "gridExtra", "skimr", "nortest", "GGally", "plotly", "DMwR")
->>>>>>> 7ea3b765665f46e07dc4c56d001a976b41b2c7d6
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 
@@ -271,6 +267,7 @@ data_rehosp %>%
   mutate(estrato = ifelse(is.na(estrato) | estrato == -1 | estrato == 0, "Sin Informacion", estrato),
          est_civil = ifelse(is.na(est_civil), "Sin Informacion", est_civil),
          ingreso = ifelse(is.na(ingreso), "Sin Informacion", ingreso),
+         proveedor = ifelse(is.na(proveedor), "Sin Informacion", proveedor),
          quirur = ifelse(quirur == 1, 'Si', 'No'),
          edad = case_when( edad <= 30 ~ "18-30",
                            edad >= 31 & edad <= 40 ~ "31-40",
@@ -550,11 +547,12 @@ for (i in 1:length(n)){
 
 MultiPlot(IV, IV$Summary$Variable[1:9])
 ```
-Seleccionar variables para modelo
-```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
+#balanceo de clases
+```{r}
 data_rehosp %>%
-  select(pago_hosp,
+  select(id,
+        pago_hosp,
         quirur,
         dias_uce,
         dias_uci,
@@ -563,59 +561,54 @@ data_rehosp %>%
         estrato,
         rehosp_oms) -> data_rehosp
 
-MultiPlot(IV, IV$Summary$Variable[10:14])
+data_rehosp %>%
+  sample_frac(size = 0.7) -> training
+
+data_rehosp %>%
+  anti_join(x = .,
+            y = training,
+            by = "id") -> testing
+
+testing %>%
+  select(-id) -> testing
+
+training %>%
+  select(-id) %>%
+  mutate(rehosp_oms = as.factor(rehosp_oms)) -> training
 
 ```
-
-```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
-MultiPlot(IV, IV$Summary$Variable[10:18])
-```
-
-balanceo de clases
-
 
 ```{r}
-set.seed(88)
-split <- sample.split(data_rehosp$rehosp_oms, SplitRatio = 0.75)
-
-# Create training and testing sets
-data_rehospTrain = subset(data_rehosp, split == TRUE)
-data_rehospTest = subset(data_rehosp, split == FALSE)
-
-#evidenciando clase desbalanceada
-prop.table(table(data_rehospTrain$rehosp_oms))
-table(data_rehospTrain$rehosp_oms)
-
-data_rehospTrain$rehosp_oms <- as.factor(data_rehospTrain$rehosp_oms)
-
-## Smote : Synthetic Minority Oversampling Technique To Handle Class Imbalancy In Binary Classification
-## now using SMOTE to create a more "balanced problem"
-data_rehospTrain <- SMOTE(rehosp_oms ~ ., as.data.frame(data_rehospTrain), perc.over = 300, perc.under = 200)
+training <- SMOTE(rehosp_oms ~ ., as.data.frame(training), perc.over = 300, perc.under = 200)
 
 #verificar clase balanceada
-prop.table(table(data_rehospTrain$rehosp_oms))
-table(data_rehospTrain$rehosp_oms)
+prop.table(table(training$rehosp_oms))
+```
 
-data_rehospTrain <- na.omit(data_rehospTrain)
- 
-mylogit <- glm(rehosp_oms ~ pago_hosp + quirur + dias_uce + dias_uci + dias_hosp + estrato, data = data_rehospTrain, family = "binomial")
- 
-predictTrain = predict(mylogit, type="response")
- 
-table(data_rehospTrain$rehosp_oms, predictTrain > 0.5)
- 
-pred <- predict(mylogit, newdata = data_rehospTest, type = "response")
+#Estimando el modelo
+```{r}
+mylogit <- glm(rehosp_oms ~ pago_hosp + quirur + dias_uce + dias_uci + dias_hosp + estrato, data = training, family = "binomial")
+
+summary(mylogit)
+```
+
+##Prediciendo y evaluando performance
+```{r}
+pred <- predict(mylogit, newdata = testing, type = "response")
  
 y_pred_num <- ifelse(pred > 0.5, 1, 0)
 y_pred <- factor(y_pred_num, levels=c(0, 1))
-y_act <- data_rehospTest$rehosp_oms
+y_act <- testing$rehosp_oms
  
 mean(y_pred == y_act)  # 66%
  
+```
+
+```{r}
+
 library(ROCR)
- 
- 
-ROCRpred = prediction(predictTrain, data_rehospTrain$rehosp_oms)
+predictTrain = predict(mylogit, type="response")
+ROCRpred = prediction(predictTrain, training$rehosp_oms)
  
 # Performance function
 ROCRperf = performance(ROCRpred, "tpr", "fpr")
@@ -628,27 +621,8 @@ plot(ROCRperf, colorize=TRUE)
 # Add threshold labels 
 plot(ROCRperf, colorize=TRUE, print.cutoffs.at=seq(0,1,by=0.1), text.adj=c(-0.2,1.7))
 
-```
 
-
-```{r}
-##Estimando el modelo
-data_rehosp %>%
-  sample_frac(size = 0.7) -> training
-
-data_rehosp %>%
-  anti_join(x = .,
-            y = training,
-            by = "id") -> testing
-
-training %>%
-  select(-id) %>%
-  mutate(rehosp_oms = as.factor(rehosp_oms)) -> training
-
-```
-
-```{r}
-library(DMwR)
-training <- SMOTE(rehosp_oms ~ ., as.data.frame(training), perc.over = 300, perc.under = 200)
+ 
+table(training$rehosp_oms, predictTrain > 0.5)
 ```
 
