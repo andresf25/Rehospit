@@ -340,8 +340,8 @@ grid.arrange(p5, p6, p7, p8,
              ncol = 2)
 
 data_rehosp %>%
-  filter(rehosp_oms == "1") %>%
-  ggplot(., aes(x = pago_hosp)) +
+  filter(rehosp_oms == "0") %>%
+  ggplot(., aes(x = dias_hosp)) +
   geom_density()
 
 
@@ -353,30 +353,30 @@ data_rehosp %>%
 
 ```{r}
 data_rehosp %>%
-  mutate(pago_hosp = ifelse(quirur == "Si", outlier(mydata = filter(data_rehosp, quirur == "Si"), 
-                                                    value = "pago_hosp", 
-                                                    q_min = 0.99, q_max = 0), pago_hosp),
-         pago_hosp = ifelse(quirur == "No", outlier(mydata = filter(data_rehosp, quirur == "No"), 
-                                                    value = "pago_hosp", 
-                                                    q_min = 0.99, q_max = 0), pago_hosp),
-         dias_hosp = outlier(mydata = ., 
-                             value = "dias_hosp",
-                             q_min = 0, q_max = 0.99),
-         dias_uci = outlier(mydata = ., 
+  mutate(pago_hosp = ifelse(quirur == "Si" & rehosp_oms == 0, 
+                            outlier(mydata = filter(data_rehosp, quirur == "Si" & rehosp_oms == 0), 
+                                    value = "pago_hosp", q_min = 0, q_max = 0.97), pago_hosp),
+         pago_hosp = ifelse(quirur == "Si" & rehosp_oms == 1, 
+                            outlier(mydata = filter(data_rehosp, quirur == "Si" & rehosp_oms == 1),
+                                    value = "pago_hosp", q_min = 0, q_max = 0.98), pago_hosp),
+         pago_hosp = ifelse(quirur == "No" & rehosp_oms == 0, 
+                            outlier(mydata = filter(data_rehosp, quirur == "No" & rehosp_oms == 0),                                                      value = "pago_hosp", q_min = 0, q_max = 0.97), pago_hosp), 
+         pago_hosp = ifelse(quirur == "No" & rehosp_oms == 1, 
+                            outlier(mydata = filter(data_rehosp, quirur == "No" & rehosp_oms == 1), 
+                                    value = "pago_hosp", q_min = 0, q_max = 0.98), pago_hosp),
+         dias_hosp = ifelse(rehosp_oms == 0, 
+                            outlier(mydata = filter(data_rehosp, rehosp_oms == 0), 
+                                                     value = "dias_hosp", q_min = 0, q_max = 0.99),
+                            outlier(mydata = filter(data_rehosp, rehosp_oms == 1), 
+                                                     value = "dias_hosp", q_min = 0, q_max = 0.99)),
+         dias_uci = ifelse(rehosp_oms == 0, outlier(mydata = ., 
                             value = "dias_uci", 
                             q_min = 0, q_max = 0.99),
          dias_uce = outlier(mydata = ., 
                             value = "dias_uce", 
                             q_min = 0, q_max = 0.99)) -> data_rehosp
-
- filter(data_rehosp, quirur == "No") -> z
- z$pago_hosp = outlier(z, "pago_hosp", 0.01, 0.99)
- 
-quantile(z$pago_hosp, 
-         c(0,0.99),
-         na.rm = TRUE)
-
 ```
+
 
 <h3 style="text-align: center;"><a id="AnalisisCar">Análisis univariado - variables cardinales</a></h3>
 
