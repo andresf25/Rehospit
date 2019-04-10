@@ -118,40 +118,61 @@ head(data_rehosp)
 #             text = ~paste0("<b>Fecha Ingreso: </b>", fecha_ingreso, "<br><b>Pago Hospitalización: </b>", pago_hosp)) %>%
 ```
 
-Variables continuas (4):
 
-* <b>dias_hosp:</b> días de hospitalización
-* <b>dias_uci:</b> número días en UCI
-* <b>dias_uce:</b> número días en UCE
-* <b>pago_hosp:</b> valor pagado primera hospitalización
+<ul>
+<li>Variables continuas (4)
+<ul>
+<li>dias_hosp: Días de hospitalización</li>
+<li>dias_uci: Número días en UCI</li>
+<li>dias_uce: Número días en UCE</li>
+<li>pago_hosp: Valor pagado primera hospitalización</li>
+</ul>
+</li>
+</ul>
+<ul>
+<li>Variables nominales (5)
+<ul>
+<li>estrato: Estrato Vivienda (0,1,2,3,4,5,6,-1)</li>
+<li>est_civil: Estado civil (C,D,S,U,V,-1)</li>
+<li>ciudad: Ciudad de contacto del asegurado</li>
+<li>diagnos: Código diagnóstico CIE10 de la primera atención </li>
+<li>categoria: Categoría del diagnóstico según el tipo de enfermedad</li>
+</ul>
+</li>
+</ul>
+<ul>
+<li>Variable dicotómica (4)
+<ul>
+<li>genero: Género del asegurado (M,F)</li>
+<li>ramo: Ramo al que pertenece el asegurado</li>
+<li>quirur: Si tuvo algun tipo de servicio relacionado a procedimiento quirúrgico</li>
+<li>rehosp_cat_oms: Similitud categoría cie10. Esta es nuestra variable objetivo </li>
+</ul>
+</li>
+</ul>
+<ul>
+<li>Variables discretas (2)
+<ul>
+<li>edad: Edad del asegurado en el momento de la hospitalización</li>
+<li>marcas: Cantidad de marcas confirmadas del asegurado</li>
+</ul>
+</li>
+</ul>
+<ul>
+<li>Variables ordinales (1)
+<ul>
+<li>ingreso: Rango de ingresos</li>
+</ul>
+</li>
+</ul>
+<ul>
+<li>Fecha (1)
+<ul>
+<li>Fecha_Ingreso: fecha ingreso hospitalización </li>
+</ul>
+</li>
+</ul>
 
-Variables nominales (5):
-
-* <b>estrato:</b> estrato Vivienda (0,1,2,3,4,5,6,-1)
-* <b>est_civil:</b> estado civil (C,D,S,U,V,-1)
-* <b>ciudad:</b> ciudad de contacto del asegurado
-* <b>diagnos:</b> código diagnóstico de la primera atención -cie10 
-* <b>categoria:</b> categoría del diagnóstico según el tipo de enfermedad
-
-Variable dicotómica (4):
-
-* <b>genero:</b> género del asegurado (M,F)
-* <b>ramo:</b> ramo al que pertenece el asegurado
-* <b>quirur:</b> Si tuvo algun tipo de servicio relacionado a procedimiento quirúrgico
-* <b>rehosp_cat_oms: similitud categoría cie10. Esta es nuestra variable objetivo</b>
-
-Variables discretas (2):
-
-* <b>edad:</b> edad del asegurado en el momento de la hospitalización
-* <b>marcas:</b> cantidad de marcas confirmadas del asegurado
-
-Variables ordinales (1):
-
-<b>ingreso:</b> Rango de ingresos
-
-Fecha (1):
-
-<b>Fecha_Ingreso:</b> fecha ingreso hospitalización 
 
 <p style="text-align: justify;">Generamos la estadística descriptiva de los datos; en ella se puede visualizar que es necesario realizar más adelante algunas conversiones en los tipos de datos que vienen por defecto (por ejemplo el estrato aparece como una variable numérica). Pero antes de continuar con la codificación, procederemos a realizar un breve análisis de valores pérdidos que nos permitan refinar la limpieza requerida en los datos.</p>
 
@@ -491,17 +512,19 @@ kable_styling(kable(IV$Summary),
               full_width = F)
 ```
 
-De acuerdo al poder predictivo de cada una de las variables, se eligen aquellas cuyo Valor de la informaciÓn (IV) sea superior al 2% (0,02). Las variables con IV inferiores a este valor se consideran impredictivas y se decide descartarlas. Las variables que continuan, en orden de relevancia segun su poder predictor, son:
+<p style="text-align: justify;">De acuerdo al poder predictivo de cada una de las variables, se eligen aquellas cuyo Valor de la informaciÓn (IV) sea superior al 2% (0,02). Las variables con IV inferiores a este valor se consideran impredictivas y se decide descartarlas. Las variables que continuan, en orden de relevancia segun su poder predictor, son:</p>
 
--pago_hosp
--quirur
--dias_uce
--dias_uci
--proveedor
--dias_hosp
--estrato
+<ul>
+<li>pago_hosp</li>
+<li>quirur</li>
+<li>dias_uce</li>
+<li>dias_uci</li>
+<li>proveedor</li>
+<li>dias_hosp</li>
+<li>estrato</li>
+</ul>
 
-Enfocandonos en el pago del diagnóstico, el cual, es la variable con mayor influencia, el WOE nos indica una relación no lineal, con un incremento en el WOE a medida que disminuye el rango de pago en el diagnóstico. 
+<p style="text-align: justify;">Enfocandonos en el pago del diagnóstico, el cual, es la variable con mayor influencia, el WOE nos indica una relación no lineal, con un incremento en el WOE a medida que disminuye el rango de pago en el diagnóstico.</p>
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 kable_styling(kable(IV$Tables$edad), 
@@ -518,7 +541,7 @@ for (i in 1:length(n)){
 MultiPlot(IV, IV$Summary$Variable[1:9])
 ```
 
-Transformacion de variables de acuerdo al WOE
+<p style="text-align: justify;">Como se pudo observar en el analisis del WOE, esta técnica ajusta los valores de las variables numericas en rangos acotados de acuerdo al valor de la informacion de cada una de ellas en relacion con la variable dependiente. Por esto, es importante transformar dichas variables en los rangos recomendados.</p>
 
 ```{r}
 
@@ -546,7 +569,7 @@ data_rehosp %>%
 <a href="#Inicio">Volver al inicio</a></li>
 
 
-<h3 style="text-align: center;"><a id="Modelo">Modelo</a></h3>
+<h2 style="text-align: center;"><a id="Modelo">Modelo</a></h2>
 
 Seleccion de variables para el modelo
 ```{r}
@@ -580,10 +603,9 @@ training %>%
 
 
 
-
 <h3 style="text-align: center;"><a id="SMOTE">SMOTE</a></h3>
 
-Como habiamos mencionado anteriormente, la informacion se encuentra desbalanceada; esto es, teniendo en cuenta que el problema en que se esta trabajando consiste en la clasificacion de una variable binaria, se debe analizar el nivel de representacion de los posibles valores de la variable binaria dentro del conjunto de informacion.
+<p style="text-align: justify;">Como se habia mencionado anteriormente, la informacion se encuentra desbalanceada; esto es, teniendo en cuenta que el problema en que se esta trabajando consiste en la clasificacion de una variable binaria, se debe analizar el nivel de representacion de los posibles valores de la variable binaria dentro del conjunto de informacion.</p>
 
 
 ```{r}
@@ -591,12 +613,11 @@ Como habiamos mencionado anteriormente, la informacion se encuentra desbalancead
 prop.table(table(data_rehosp$rehosp_oms))
 ```
 
-Vemos que la representacion para la categoría positiva es alrededor del 2% de la información. En ete caso vamos a realizar un tratamiento de la información que permita aumentar la clase minoritaria, sin utilizar soluciones genéricas como reducir la clase mayoritaria al nivel de la clase minoritaria.
+<p style="text-align: justify;">Vemos que la representacion para la categoría positiva es un poco mas del 2% de la información. En este caso vamos a realizar un tratamiento de la información que permita aumentar la clase minoritaria, sin utilizar soluciones genéricas como reducir la clase mayoritaria al nivel de la clase minoritaria.</p>
 
-Pära este caso vamos a utilizar la técnica SMOTE (Synthetic Minority Oversampling Method), la cual genera
-nuevas instancias artificiales de la clase minoritaria interpolando los valores de las instancias minoritarias más cercanas a una dada.
+<p style="text-align: justify;">Para este caso vamos a utilizar la técnica SMOTE (Synthetic Minority Oversampling Method), la cual genera nuevas instancias artificiales de la clase minoritaria interpolando los valores de las instancias minoritarias más cercanas a una dada.</p>
 
-Por medio de SMOTE se generará un nuevo set de datos de entrenamiento, en el cual se tenga un 60% de informacion para la categoria negativa (rehosp_oms = 0) y 40% para la categoria positiva (rehosp_oms = 0).
+<p style="text-align: justify;">Por medio de SMOTE se generará un nuevo set de datos de entrenamiento, en el cual se tenga un 60% de informacion para la categoria negativa (rehosp_oms = 0) y 40% para la categoria positiva (rehosp_oms = 0).</p>
 
 
 ```{r}
