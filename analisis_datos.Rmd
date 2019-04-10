@@ -9,8 +9,8 @@ output: html_notebook
 
 <table>
 <tr>
-<td><img style="width:550px; height:120px;" src="Datalytics.png" /></td>
 <td><img style="width:270px; height:200px;" src="SURA.png" /></td>
+<td><img style="width:550px; height:120px;" src="Datalytics.png" /></td>
 </tr>
 </table>
 
@@ -44,6 +44,7 @@ output: html_notebook
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 set.seed(1234)
+options(scipen = 100)
 rm(list = ls())
 source("functions_plot.R")
 
@@ -183,6 +184,31 @@ data_rehosp %>%
   skim()
 ```
 
+```{r}
+require(scales)
+
+data_rehosp %>%
+  filter(pago_hosp > 0) %>%
+  group_by(fecha_ingreso) %>% 
+  summarise_all(~sum(pago_hosp)) %>%  
+  ggplot(aes(x=fecha_ingreso, y=pago_hosp)) + 
+  geom_line() + geom_smooth(method = "lm") + theme_minimal() +
+  labs(title = "Pago Hosp en el tiempo",
+         x= "Fecha_Ingreso", 
+         y = "Pago Hosp") +
+    theme(plot.title = element_text(hjust = 0.5), 
+          legend.position = "none") + scale_y_continuous(labels = dollar) -> p
+
+p <- ggplotly(p)
+p %>%
+  text = ~paste0("<b>Fecha Ingreso:<br></b>", fecha_ingreso,
+                 "<b>Fecha Ingreso:</b>", pago_hosp)
+# ggplot(data_rehosp, aes(x = fecha_ingreso, y = rehosp_oms)) + 
+#   geom_line(aes(color = as.factor(rehosp_oms)), size = 1) +
+#   scale_color_manual(values = c("#00AFBB", "#E7B800")) +
+#   theme_minimal()
+```
+
 <a href="#Inicio">Volver al inicio</a></li>
 
 
@@ -289,6 +315,8 @@ data_rehosp %>%
 
 str(data_rehosp)
 ```
+
+
 
 <a href="#Inicio">Volver al inicio</a></li>
 
