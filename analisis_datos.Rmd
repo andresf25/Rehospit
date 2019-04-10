@@ -189,24 +189,24 @@ require(scales)
 
 data_rehosp %>%
   filter(pago_hosp > 0) %>%
-  group_by(fecha_ingreso) %>% 
-  summarise_all(~sum(pago_hosp)) %>%  
-  ggplot(aes(x=fecha_ingreso, y=pago_hosp)) + 
+  group_by(fecha_ingreso) %>%
+  summarise_all(~sum(pago_hosp)) %>%
+  ggplot(aes(x=fecha_ingreso, y=pago_hosp)) +
   geom_line() + geom_smooth(method = "lm") + theme_minimal() +
   labs(title = "Pago Hosp en el tiempo",
-         x= "Fecha_Ingreso", 
+         x= "Fecha_Ingreso",
          y = "Pago Hosp") +
-    theme(plot.title = element_text(hjust = 0.5), 
+    theme(plot.title = element_text(hjust = 0.5),
           legend.position = "none") + scale_y_continuous(labels = dollar) -> p
 
 p <- ggplotly(p)
 p %>%
   text = ~paste0("<b>Fecha Ingreso:<br></b>", fecha_ingreso,
                  "<b>Fecha Ingreso:</b>", pago_hosp)
-# ggplot(data_rehosp, aes(x = fecha_ingreso, y = rehosp_oms)) + 
-#   geom_line(aes(color = as.factor(rehosp_oms)), size = 1) +
-#   scale_color_manual(values = c("#00AFBB", "#E7B800")) +
-#   theme_minimal()
+ggplot(data_rehosp, aes(x = fecha_ingreso, y = rehosp_oms)) +
+  geom_line(aes(color = as.factor(rehosp_oms)), size = 1) +
+  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
+  theme_minimal()
 ```
 
 <a href="#Inicio">Volver al inicio</a></li>
@@ -317,13 +317,45 @@ str(data_rehosp)
 ```
 
 
-
 <a href="#Inicio">Volver al inicio</a></li>
 
 
 <h2 style="text-align: center;"><a id="Analisis">Análisis Exploratorio</a></h2>
 
 <h3 style="text-align: center;"><a id="AnalisisCon">Análisis univariado - variables continuas</a></h3>
+
+<p style="text-align: justify;">Es evidente la existencia también, de valores atípicos muy marcados tanto en el numéro de días de hospitalización, como en los números de días que el paciente estuvo en la Unidad de Cuidado Intensivo y Especial, en dónde los valores atípicos más grandes suceden en los eventos que terminaron en rehospitalización.</p>
+
+<p style="text-align: justify;">Con el análisis anterior no sólo se logra identificar variables con presencia de valores atípicos, sino que también es posible evidenciar que los datos se encuentran altamente desbalanceados. Por ende, antes de continur con la exploración de los datos se procede a tratar ambos problemas. En el caso de los outliers se truncará en los casos en que sea necesario, imputando los valores que superen cierto límite en el percntil, tanto mayor como menor.</p>
+
+```{r}
+data_rehosp %>%
+  mutate(pago_hosp = ifelse(quirur == "Si" & rehosp_oms == 0, 
+                            outlier(mydata = filter(data_rehosp, quirur == "Si" & rehosp_oms == 0), 
+                                    value = "pago_hosp", q_min = 0, q_max = 0.97), pago_hosp),
+         pago_hosp = ifelse(quirur == "Si" & rehosp_oms == 1, 
+                            outlier(mydata = filter(data_rehosp, quirur == "Si" & rehosp_oms == 1),
+                                    value = "pago_hosp", q_min = 0, q_max = 0.98), pago_hosp),
+         pago_hosp = ifelse(quirur == "No" & rehosp_oms == 0, 
+                            outlier(mydata = filter(data_rehosp, quirur == "No" & rehosp_oms == 0),                                                      value = "pago_hosp", q_min = 0, q_max = 0.97), pago_hosp), 
+         pago_hosp = ifelse(quirur == "No" & rehosp_oms == 1, 
+                            outlier(mydata = filter(data_rehosp, quirur == "No" & rehosp_oms == 1), 
+                                    value = "pago_hosp", q_min = 0, q_max = 0.98), pago_hosp),
+         dias_hosp = ifelse(rehosp_oms == 0, 
+                            outlier(mydata = filter(data_rehosp, rehosp_oms == 0), 
+                                                    value = "dias_hosp", q_min = 0, q_max = 0.99),
+                            outlier(mydata = filter(data_rehosp, rehosp_oms == 1), 
+                                                    value = "dias_hosp", q_min = 0, q_max = 0.99)),
+         dias_uci = ifelse(rehosp_oms == 0, 
+                           outlier(mydata = filter(data_rehosp, rehosp_oms == 0 & dias_uci > 0), 
+                                                    value = "dias_uci", q_min = 0, q_max = 0.99)
+                           , dias_uci),
+         dias_uce = ifelse(rehosp_oms == 0, 
+                           outlier(mydata = filter(data_rehosp, rehosp_oms == 0 & dias_uce > 0), 
+                                                    value = "dias_uce", q_min = 0, q_max = 0.99)
+                           , dias_uci)) -> data_rehosp
+```
+
 
 <p style="text-align: justify;">Se puede observar que tanto en el numéro de marcas como en la variable de pago, correspondiente al primer diagnóstico, no parece haber una diferencia significativa en la distribución al discriminar por la variable objetivo binaria, es decir, entre los casos de rehospitalización (1) y casos de no rehospitalización (0). Adicionalmente, la distibución en ambas variables no es simétrica. En el caso de las marcas se observa una asimetría positiva o sesgada a la derecha y de manera similar, aunque menos marcada, para el caso del pago en el primer diagnóstico.</p>
 
@@ -367,44 +399,7 @@ grid.arrange(p5, p6, p7, p8,
              nrow = 2,
              ncol = 2)
 
-data_rehosp %>%
-  filter(rehosp_oms == "0") %>%
-  ggplot(., aes(x = dias_hosp)) +
-  geom_density()
-
-
 ```
-
-<p style="text-align: justify;">Es evidente la existencia también, de valores atípicos muy marcados tanto en el numéro de días de hospitalización, como en los números de días que el paciente estuvo en la Unidad de Cuidado Intensivo y Especial, en dónde los valores atípicos más grandes suceden en los eventos que terminaron en rehospitalización.</p>
-
-<p style="text-align: justify;">Con el análisis anterior no sólo se logra identificar variables con presencia de valores atípicos, sino que también es posible evidenciar que los datos se encuentran altamente desbalanceados. Por ende, antes de continur con la exploración de los datos se procede a tratar ambos problemas. En el caso de los outliers se truncará en los casos en que sea necesario, imputando los valores que superen cierto límite en el percntil, tanto mayor como menor.</p>
-
-```{r}
-data_rehosp %>%
-  mutate(pago_hosp = ifelse(quirur == "Si" & rehosp_oms == 0, 
-                            outlier(mydata = filter(data_rehosp, quirur == "Si" & rehosp_oms == 0), 
-                                    value = "pago_hosp", q_min = 0, q_max = 0.97), pago_hosp),
-         pago_hosp = ifelse(quirur == "Si" & rehosp_oms == 1, 
-                            outlier(mydata = filter(data_rehosp, quirur == "Si" & rehosp_oms == 1),
-                                    value = "pago_hosp", q_min = 0, q_max = 0.98), pago_hosp),
-         pago_hosp = ifelse(quirur == "No" & rehosp_oms == 0, 
-                            outlier(mydata = filter(data_rehosp, quirur == "No" & rehosp_oms == 0),                                                      value = "pago_hosp", q_min = 0, q_max = 0.97), pago_hosp), 
-         pago_hosp = ifelse(quirur == "No" & rehosp_oms == 1, 
-                            outlier(mydata = filter(data_rehosp, quirur == "No" & rehosp_oms == 1), 
-                                    value = "pago_hosp", q_min = 0, q_max = 0.98), pago_hosp),
-         dias_hosp = ifelse(rehosp_oms == 0, 
-                            outlier(mydata = filter(data_rehosp, rehosp_oms == 0), 
-                                                     value = "dias_hosp", q_min = 0, q_max = 0.99),
-                            outlier(mydata = filter(data_rehosp, rehosp_oms == 1), 
-                                                     value = "dias_hosp", q_min = 0, q_max = 0.99)),
-         dias_uci = ifelse(rehosp_oms == 0, outlier(mydata = ., 
-                            value = "dias_uci", 
-                            q_min = 0, q_max = 0.99),
-         dias_uce = outlier(mydata = ., 
-                            value = "dias_uce", 
-                            q_min = 0, q_max = 0.99)) -> data_rehosp
-```
-
 
 <h3 style="text-align: center;"><a id="AnalisisCar">Análisis univariado - variables cardinales</a></h3>
 
