@@ -318,9 +318,7 @@ data_rehosp %>%
 str(data_rehosp)
 ```
 
-
 <a href="#Inicio">Volver al inicio</a></li>
-
 
 <h2 style="text-align: center;"><a id="Analisis">Análisis Exploratorio</a></h2>
 
@@ -397,7 +395,7 @@ p8 <- myboxplot(mydata = filter(data_rehosp, dias_uce > 0),
                 mylabel_y = "Dias UCE", 
                 my_fill = "")
 
-#grid.arrange(p5, p6, p7, p8,             nrow = 2,             ncol = 2)
+#grid.arrange(p5, p6, p7, p8, nrow = 2, ncol = 2)
 
 p5 <- ggplotly(p5)
 p6 <- ggplotly(p6)
@@ -596,28 +594,27 @@ MultiPlot(IV, IV$Summary$Variable[1:9])
 <p style="text-align: justify;">Como se pudo observar en el analisis del WOE, esta técnica ajusta los valores de las variables numericas en rangos acotados de acuerdo al valor de la informacion de cada una de ellas en relacion con la variable dependiente. Por esto, es importante transformar dichas variables en los rangos recomendados.</p>
 
 ```{r}
-
-data_rehosp %>%
-  mutate(pago_hosp1 = case_when( pago_hosp <= 107410 ~ "[0,107410]",
-                           pago_hosp >= 107570 & pago_hosp <= 776965 ~ "[107570,776965]",
-                           pago_hosp >= 777697 & pago_hosp <= 1547806 ~ "[777697,1547806]",
-                           pago_hosp >= 1547847 & pago_hosp <= 2251764 ~ "[1547847,2251764]",
-                           pago_hosp >= 2251913 & pago_hosp <= 3021862 ~ "[2251913,3021862]",
-                           pago_hosp >= 3022030 & pago_hosp <= 3996928 ~ "[3022030,3996928]",
-                           pago_hosp >= 3996933 & pago_hosp <= 5328423 ~ "[3996933,5328423]",
-                           pago_hosp >= 5329500 & pago_hosp <= 7048290 ~ "[5329500,7048290]",
-                           pago_hosp >= 7048902 & pago_hosp <= 11408415 ~ "[7048902,11408415]",
-                           pago_hosp >= 11408625 & pago_hosp <= 47387883 ~ "[11408625,47387883]",
-                           pago_hosp >= 47387883 ~ "[47387883+"),
-         dias_hosp1 = case_when( dias_hosp = 1 ~ "[1]",
-                                dias_hosp = 2 ~ "[2]",
-                                dias_hosp = 3 ~ "[3]",
-                                dias_hosp = 4 ~ "[4]",
-                                dias_hosp >= 5 & dias_hosp <= 7 ~ "[5,7]",
-                                dias_hosp >= 8 & dias_hosp <= 30 ~ "[8,30]")) -> data_rehosp2
-
-
-str(data_rehosp)
+# data_rehosp %>%
+#   mutate(pago_hosp1 = case_when( pago_hosp <= 107410 ~ "[0,107410]",
+#                            pago_hosp >= 107570 & pago_hosp <= 776965 ~ "[107570,776965]",
+#                            pago_hosp >= 777697 & pago_hosp <= 1547806 ~ "[777697,1547806]",
+#                            pago_hosp >= 1547847 & pago_hosp <= 2251764 ~ "[1547847,2251764]",
+#                            pago_hosp >= 2251913 & pago_hosp <= 3021862 ~ "[2251913,3021862]",
+#                            pago_hosp >= 3022030 & pago_hosp <= 3996928 ~ "[3022030,3996928]",
+#                            pago_hosp >= 3996933 & pago_hosp <= 5328423 ~ "[3996933,5328423]",
+#                            pago_hosp >= 5329500 & pago_hosp <= 7048290 ~ "[5329500,7048290]",
+#                            pago_hosp >= 7048902 & pago_hosp <= 11408415 ~ "[7048902,11408415]",
+#                            pago_hosp >= 11408625 & pago_hosp <= 47387883 ~ "[11408625,47387883]",
+#                            pago_hosp >= 47387883 ~ "[47387883+"),
+#          dias_hosp1 = case_when( dias_hosp = 1 ~ "[1]",
+#                                 dias_hosp = 2 ~ "[2]",
+#                                 dias_hosp = 3 ~ "[3]",
+#                                 dias_hosp = 4 ~ "[4]",
+#                                 dias_hosp >= 5 & dias_hosp <= 7 ~ "[5,7]",
+#                                 dias_hosp >= 8 & dias_hosp <= 30 ~ "[8,30]")) -> data_rehosp2
+# 
+# 
+# str(data_rehosp)
 
 ```
 
@@ -688,17 +685,27 @@ prop.table(table(training$rehosp_oms))
 
 Estimando el modelo
 ```{r}
-mylogit <- glm(rehosp_oms ~ pago_hosp + quirur + dias_uce + dias_uci + dias_hosp + estrato, data = training, family = "binomial")
+mylogit <- glm(rehosp_oms ~ pago_hosp + quirur +  dias_hosp + dias_uce + dias_uci + estrato, data = training, family = "binomial")
 
 summary(mylogit)
 ```
 
+```{r}
+pred <- predict(mylogit, newdata = training[-9], type = "response")
+ 
+y_pred_num_train <- ifelse(pred > 0.5, 1, 0)
+y_pred_train <- factor(y_pred_num, levels=c(0, 1))
+y_act_train <- training$rehosp_oms
+ 
+mean(y_pred_train == y_act_train)  
+```
+
+
 Prediciendo y evaluando performance
 ```{r}
-pred <- predict(mylogit, newdata = testing, type = "response")
- 
-y_pred_num <- ifelse(pred > 0.5, 1, 0)
-y_pred <- factor(y_pred_num, levels=c(0, 1))
+prob_pred = predict(mylogit, type = 'response', newdata = testing[-9])
+y_pred = ifelse(prob_pred > 0.5, 1, 0)
+y_pred_fac <- factor(y_pred, levels=c(0, 1))
 y_act <- testing$rehosp_oms
  
 mean(y_pred == y_act)  # X%
@@ -708,12 +715,13 @@ mean(y_pred == y_act)  # X%
 ```{r}
 
 library(ROCR)
-predictTrain = predict(mylogit, type="response")
-ROCRpred = prediction(predictTrain, training$rehosp_oms)
+ROCRpred = prediction(prob_pred, testing$rehosp_oms)
  
 # Performance function
 ROCRperf = performance(ROCRpred, "tpr", "fpr")
- 
+
+perf1 <- performance(ROCRpred, "prec", "rec")
+plot(perf1)
  
 # Plot ROC curve
 plot(ROCRperf)
@@ -723,7 +731,9 @@ plot(ROCRperf, colorize=TRUE)
 plot(ROCRperf, colorize=TRUE, print.cutoffs.at=seq(0,1,by=0.1), text.adj=c(-0.2,1.7))
 
 
- 
-table(training$rehosp_oms, predictTrain > 0.5)
+prob_pred = predict(mylogit, type = 'response', newdata = testing[-9])
+y_pred = ifelse(prob_pred > 0.5, 1, 0)
+cm = table(as.matrix(testing[, 9]), y_pred > 0.5)
+
 ```
 
