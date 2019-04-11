@@ -415,7 +415,7 @@ p9 <- mygeom_bar(mydata = data_rehosp,
                  mylabel_y = "Frecuencia", 
                  my_fill = "Rehospitalización", 
                  my_angle = NULL,
-                 my_legend = "none")
+                 my_legend = "right")
 
 p10 <- mygeom_bar(mydata = data_rehosp, 
                   myexposure = "estrato", 
@@ -425,7 +425,7 @@ p10 <- mygeom_bar(mydata = data_rehosp,
                   mylabel_y = "Frecuencia", 
                   my_fill = "Rehospitalización", 
                   my_angle = NULL,
-                  my_legend = "right")
+                  my_legend = "none")
 
 grid.arrange(p9,                                    
              p10)
