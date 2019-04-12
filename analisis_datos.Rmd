@@ -10,7 +10,8 @@ output: html_notebook
 <table>
 <tr>
 <td><img style="width:270px; height:200px;" src="SURA.png" /></td>
-<td><img style="width:550px; height:120px;" src="Datalytics.png" /></td>
+<td><img style="width:150px; height:150px;" src="blanco.jpg" /></td>
+<td><img style="width:500px; height:100px;" src="Datalytics.png" /></td>
 </tr>
 </table>
 
@@ -43,9 +44,8 @@ output: html_notebook
 <a href="#Inicio">Volver al inicio</a></li>
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
-set.seed(1234)
-options(scipen = 100)
 rm(list = ls())
+options(scipen = 100)
 source("functions_plot.R")
 
 list.of.packages <- c("readxl", "dplyr", "ggplot2", "ggcorrplot", "VIM", "RColorBrewer", "Information", "knitr", "kableExtra", "gridExtra", "skimr", "nortest", "GGally", "plotly", "lattice", "DMwR", "caTools", "plotly")
@@ -530,9 +530,12 @@ grid.arrange(p15,
 
 <p style="text-align: justify;">El peso de la evidencia (WOE) y el valor de la información (IV) ayudan, entre otras cosas, a determinar la contribución independiente de cada variable al resultado, y detectar relaciones lineales y no lineales. El WOE mide la relación entre la variable predictiva y el objeto binario, mientras que el IV mide la fuerza predictiva de esa relación.</p>
 
-<p style="text-align: justify;">La tabla a continuación contiene los valores del "valor de la información" con y sin el ajuste derivado de la validación cruzada. Cuando se realiza el ajuste con el objetivo de que los resultados sean más estables, sólo el pago del diagnóstico, si el paciente pasó por la Unidad de cuidados Especiales la primera vez y si fueron realizados procedimientos quirúrgicos serán las únicas variables con suficiente capacidad de predicción a nivel individual y univariable (Iv > 5%). Cuando se relaja el supuesto, IV sin restar el penalty, se incluirían las marcas y la edad y la ciudad.</p>
+<p style="text-align: justify;">La tabla a continuación contiene los valores del "valor de la información" con y sin el ajuste derivado de la validación cruzada. Cuando se realiza el ajuste con el objetivo de que los re
+
+sultados sean más estables, sólo el pago del diagnóstico, si el paciente pasó por la Unidad de cuidados Especiales la primera vez y si fueron realizados procedimientos quirúrgicos serán las únicas variables con suficiente capacidad de predicción a nivel individual y univariable (Iv > 5%). Cuando se relaja el supuesto, IV sin restar el penalty, se incluirían las marcas y la edad y la ciudad.</p>
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
+set.seed(1234)
 data_rehosp <- data_rehosp %>%
   mutate(id = 1:nrow(.)) 
 
@@ -618,11 +621,14 @@ MultiPlot(IV, IV$Summary$Variable[1:9])
 
 <h2 style="text-align: center;"><a id="Modelo">Modelo</a></h2>
 
+<p style = "text-align: justify;">El objetivo principal del análisis es estimar un modelo predictivo con el cuál se pueda analizar la probabilidad de que un paciente termine en una rehospitalización asociada a un diangóstico anterior. Para ello se empleará un modelo de regresión logística, el cuál es ampliamente utilizado cuando se enfrenta a problemas de clasificación binaria.</p>
+
 <p style = "text-align: justify;">Una vez se realizan los filtros de calidad y completitud, y tras lo obtenido en los resultados del WOE, se procede a realizar la seleccion de variables para el modelo. Se tendrán en cuenta entonces, el pago realizado, los días en que estuvo el paciente en la Unidad de Cuidados, el hecho de que se le haya realizado o no una cirugía y el estrato.</p>
 
-<p style = "text-align: justify;">Con el objetivo de evaluar la capacidad de generalización del modelo, se dividirá el conjunto de datos en entrenamiento (70%) y prueba (30%).</p>
+<p style = "text-align: justify;">Para evaluar la capacidad de generalización del modelo, se dividirá el conjunto de datos en entrenamiento (70%) y prueba (30%).</p>
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
+set.seed(1234)
 data_rehosp %>%
   select(id,
         pago_hosp,
@@ -652,12 +658,18 @@ training %>%
 
 <h3 style="text-align: center;"><a id="SMOTE">Smote</a></h3>
 
-<p style="text-align: justify;">Como se habia mencionado anteriormente, la informacion se encuentra desbalanceada; esto es, teniendo en cuenta que el problema en que se esta trabajando consiste en la clasificacion de una variable binaria, se debe analizar el nivel de representacion de los posibles valores de la variable binaria dentro del conjunto total fde datos.</p>
+<p style="text-align: justify;">Como se habia mencionado anteriormente, la informacion se encuentra desbalanceada; esto es, teniendo en cuenta que el problema en que se esta trabajando consiste en la clasificacion de una variable dicotómica, se debe analizar el nivel de representacion de sus posibles valores dentro del conjunto total de datos.</p>
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
-prop.table(table(data_rehosp$rehosp_oms))
-```
+kable(as.data.frame(prop.table(table(data_rehosp$rehosp_oms)))) %>%
+kable_styling(position = "center", 
+              row_label_position = 1,
+              full_width = F) %>%
+row_spec(0,background="#EBF0F7")
+
+
+```column
 
 <p style="text-align: justify;">Vemos que la representacion para la categoría positiva es un poco mas del 2% de la información. En este caso vamos a realizar un tratamiento que permita aumentar la clase minoritaria, sin utilizar soluciones genéricas como reducir la clase mayoritaria al nivel de la clase minoritaria.</p>
 
@@ -672,29 +684,47 @@ training <- SMOTE(rehosp_oms ~ ., as.data.frame(training), perc.over = 300, perc
 Verificamos que el set de entrenamiento se encuentre balanceado:
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
-prop.table(table(training$rehosp_oms))
+
+kable_styling(kable(as.data.frame(prop.table(table(training$rehosp_oms)))), 
+              position = "center", 
+              row_label_position = 1,
+              full_width = F) %>%
+row_spec(0,background="#EBF0F7")
+
 ```
 
-El objetivo principal del análisis es estimar un modelo predictivo con el cuál se pueda estimar la probabilidad de que un paciente termine en una rehospitalización asociada a un diangóstico anterior. Para ello se empleará un modelo de regresión logística, el cual es un modelo ampliamente conocido cuando se tratan problemas de clasificación binaria.
-```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
+<h3 style="text-align: center;"><a id="Analisis">Ajuste del modelo y Estimación de parámetros</a></h3>
+
+Del resultado exploratorio anterior, al discriminar el análisis de las variables independientes por nuestra variable objetivo (Rehospitalización), es posible evidenciar una diferencia clara entre las distribuciones para los atributos: Pago/costo del procedimiento y los días en que el usuario estuvo internado ya sea en la Unidad de Cuidados Intensivos o Especiales. Esto podría ser un indicio de que estas variables en particular, podrían a llegar a ser relevantes para explicar la probabilidad de ocurrencia del evento, cuando hubo una hospitalización anterior ligada a ese diagnóstico.
+
+A continuación, al ajustar el modelo obtenemos los siguientes resultados:
+
+```{r, message = FALSE, echo = FALSE, eval =TRUE}
 mylogit <- glm(rehosp_oms ~ pago_hosp + quirur +  dias_hosp + dias_uce + dias_uci + estrato, data = training, family = "binomial")
 summary(mylogit)
 ```
 
+1. Cada cambio en una unidad en el pago hospitalario disminuirá las probabilidades de rehospitalización, pero en una cantidad muy pequeña (-7.308E-08)
+2. Cuando a un paciente se le realiza un procedimiento quirúrgico su probabilidad de que termine hospitalizado de nuevo por el mismo dianóstico, disminuye en 0.14 en comparación a cuando no se le realiza ninguna cirugía.
+3. La probabilidad de rehospitalización decrece, al permanecer un día adicional el paciente en la UCE (en 1.45) y la UCI (1.73)
+
+El resto de las variables no son suficientemente explicativas para predecir, de manera significativa, su efecto sobre la variable de respuesta binaria.
+
 ```{r}
-pred <- predict(mylogit, newdata = training[-9], type = "response")
+pred <- predict(mylogit, newdata = training[-7], type = "response")
  
-y_pred_num_train <- ifelse(pred > 0.5, 1, 0)
-y_pred_train <- factor(y_pred_num, levels=c(0, 1))
+y_pred_train <- ifelse(pred > 0.5, 1, 0)
+y_pred_train_fac <- factor(y_pred_train, levels=c(0, 1))
 y_act_train <- training$rehosp_oms
  
-mean(y_pred_train == y_act_train)  
+mean(y_pred_train == y_act_train)
 ```
 
 
 Prediciendo y evaluando performance
 ```{r}
-prob_pred = predict(mylogit, type = 'response', newdata = testing[-9])
+prob_pred = predict(mylogit, type = 'response', newdata = testing[-7])
+
 y_pred = ifelse(prob_pred > 0.5, 1, 0)
 y_pred_fac <- factor(y_pred, levels=c(0, 1))
 y_act <- testing$rehosp_oms
@@ -725,6 +755,8 @@ plot(ROCRperf, colorize=TRUE, print.cutoffs.at=seq(0,1,by=0.1), text.adj=c(-0.2,
 prob_pred = predict(mylogit, type = 'response', newdata = testing[-9])
 y_pred = ifelse(prob_pred > 0.5, 1, 0)
 cm = table(as.matrix(testing[, 9]), y_pred > 0.5)
+
+cm
 
 ```
 
