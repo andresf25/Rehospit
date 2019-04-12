@@ -693,17 +693,18 @@ summary(mylogit)
 ```{r}
 pred <- predict(mylogit, newdata = training[-9], type = "response")
  
-y_pred_num_train <- ifelse(pred > 0.5, 1, 0)
-y_pred_train <- factor(y_pred_num, levels=c(0, 1))
+y_pred_train <- ifelse(pred > 0.5, 1, 0)
+y_pred_train_fac <- factor(y_pred_train, levels=c(0, 1))
 y_act_train <- training$rehosp_oms
  
-mean(y_pred_train == y_act_train)  
+mean(y_pred_train == y_act_train)
 ```
 
 
 Prediciendo y evaluando performance
 ```{r}
 prob_pred = predict(mylogit, type = 'response', newdata = testing[-9])
+
 y_pred = ifelse(prob_pred > 0.5, 1, 0)
 y_pred_fac <- factor(y_pred, levels=c(0, 1))
 y_act <- testing$rehosp_oms
@@ -734,6 +735,8 @@ plot(ROCRperf, colorize=TRUE, print.cutoffs.at=seq(0,1,by=0.1), text.adj=c(-0.2,
 prob_pred = predict(mylogit, type = 'response', newdata = testing[-9])
 y_pred = ifelse(prob_pred > 0.5, 1, 0)
 cm = table(as.matrix(testing[, 9]), y_pred > 0.5)
+
+cm
 
 ```
 
