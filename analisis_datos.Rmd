@@ -254,22 +254,22 @@ p32
 ```
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE, fig.width=8, fig.height=4}
-require(scales)
-
-data_rehosp %>%
-  filter(rehosp_oms > 0) %>%
-  group_by(fecha_ingreso) %>%
-  summarise_all(~sum(rehosp_oms)) %>%
-  ggplot(aes(x=fecha_ingreso, y=rehosp_oms)) +
-  geom_line() + geom_smooth(method = "lm") + theme_minimal() +
-  labs(title = "Numero Rehosp en el Tiempo",
-         x= "Fecha Rehosp.",
-         y = "Num. Rehosp.") +
-    theme(plot.title = element_text(hjust = 0.5),
-          legend.position = "none") -> p34
-
-p34 <- ggplotly(p34)
-p34
+# require(scales)
+# 
+# data_rehosp %>%
+#   filter(rehosp_oms > 0) %>%
+#   group_by(fecha_ingreso) %>%
+#   summarise_all(~sum(rehosp_oms)) %>%
+#   ggplot(aes(x=fecha_ingreso, y=rehosp_oms)) +
+#   geom_line() + geom_smooth(method = "lm") + theme_minimal() +
+#   labs(title = "Numero Rehosp en el Tiempo",
+#          x= "Fecha Rehosp.",
+#          y = "Num. Rehosp.") +
+#     theme(plot.title = element_text(hjust = 0.5),
+#           legend.position = "none") -> p34
+# 
+# p34 <- ggplotly(p34)
+# p34
 ```
 
 
@@ -772,33 +772,35 @@ summary(mylogit)
 
 El resto de las variables no son suficientemente explicativas para predecir, de manera significativa, su efecto sobre la variable de respuesta binaria.
 
-```{r}
-pred <- predict(mylogit, newdata = training[-7], type = "response")
- 
-y_pred_train <- ifelse(pred > 0.5, 1, 0)
-y_pred_train_fac <- factor(y_pred_train, levels=c(0, 1))
+<h3 style="text-align: center;"><a id="Evaluación">Prediciendo y evaluando el desempeño del modelo</a></h3>
+
+Después de estimados los coeficentes procedemos a realizar la predicción dentro y fuera de muestra para evaluar la precisión (accuracy) de nuestro modelo. Los resultados 
+```{r, message = FALSE, echo = FALSE, eval =TRUE}
+pred_train <- predict(mylogit, newdata = training[-7], type = "response")
+y_pred_train <- ifelse(pred_train > 0.5, 1, 0)
 y_act_train <- training$rehosp_oms
- 
-mean(y_pred_train == y_act_train)
-```
 
-
-Prediciendo y evaluando performance
-```{r}
-prob_pred = predict(mylogit, type = 'response', newdata = testing[-7])
-
-y_pred = ifelse(prob_pred > 0.5, 1, 0)
-y_pred_fac <- factor(y_pred, levels=c(0, 1))
+pred = predict(mylogit, type = 'response', newdata = testing[-7])
+y_pred = ifelse(pred > 0.5, 1, 0)
 y_act <- testing$rehosp_oms
- 
-mean(y_pred == y_act)  # X%
- 
+
+
+kable(data.frame(Train = mean(y_pred_train == y_act_train), Test = mean(y_pred == y_act))) %>%
+  kable_styling(position = "center", 
+                row_label_position = 1,
+                full_width = F) %>%
+row_spec(0,background="#EBF0F7")
+  
 ```
 
 ```{r}
 
+```
+
+
+```{r, message = FALSE, echo = FALSE, eval =TRUE}
 library(ROCR)
-ROCRpred = prediction(prob_pred, testing$rehosp_oms)
+ROCRpred = prediction(pred, testing$rehosp_oms)
  
 # Performance function
 ROCRperf = performance(ROCRpred, "tpr", "fpr")
@@ -814,11 +816,7 @@ plot(ROCRperf, colorize=TRUE)
 plot(ROCRperf, colorize=TRUE, print.cutoffs.at=seq(0,1,by=0.1), text.adj=c(-0.2,1.7))
 
 
-prob_pred = predict(mylogit, type = 'response', newdata = testing[-9])
-y_pred = ifelse(prob_pred > 0.5, 1, 0)
-cm = table(as.matrix(testing[, 9]), y_pred > 0.5)
-
+cm = table(as.matrix(testing[, 7]), y_pred > 0.5)
 cm
-
 ```
 
