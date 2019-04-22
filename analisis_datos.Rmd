@@ -15,8 +15,9 @@ author: "<center><a href='mailto:andres.gonzalez@datalytics.com'>Andrés Felipe 
 </table>
 <hr>
 
+<h3 id="indice" style="text-align: center;" markdown="1">Índice</h3>
+<div style="text-align: justify">
 
-<h3 style="text-align: center;">Índice</h3>
 El presente notebook contiene información relacionada al entendimiento de los datos y resultados obtenidos de un modelo de predicción para el problema de rehospitalización.
 
 <ol>
@@ -27,7 +28,7 @@ El presente notebook contiene información relacionada al entendimiento de los d
       <ol>
         <li><a href="#AnalisisCon">Análisis univariado - variables continuas</a></li>
         <li><a href="#AnalisisCar">Análisis univariado - variables cardinales</a></li>
-        </ol>
+      </ol>
     <li><a href="#AnalisisWOE">Análisis de clasificación binaria usando WOE y el IV</a></li>
     <li><a href="#Modelo">Modelo</a></li>
       <ol>
@@ -42,12 +43,12 @@ El presente notebook contiene información relacionada al entendimiento de los d
 Haciendo click sobre cada una de las secciones puede ir directamente a cada una de ellas. Al finalizar cada sección encontrará un link para volver al índice.</div>
 <hr>
 
-<h3 style="text-align: center;" id="Generalidades" markdown="1">Generalidades</h3>
+<h3 id="Generalidades" style="text-align: center;" markdown="1">Generalidades</h3>
 <div style="text-align: justify">
 
-El objetivo es desarrollar e implementar un modelo de predicción de rehospitalizaciones para apoyar los programas de evitabilidad post-hospitalaria. El análisis se realizará con información que describe las características sociodemográficas del individuo y con algunos datos recolectados por el personal hospitalario para un periodo de tiempo de dos años y medio, que va desde 2016 hasta 2018.
+El objetivo es desarrollar e implementar un modelo de predicción de rehospitalizaciones para apoyar los programas de evitabilidad post-hospitalaria. El análisis se realizará con información que describe las características sociodemográficas del individuo y con algunos datos recolectados por el personal hospitalario; para un periodo de tiempo de dos años y medio, que va desde 2016 hasta 2018.
 
-<a href="#Inicio">Volver al inicio</a></li></div>
+[Volver al Índice](#indice)</div>
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 rm(list = ls())
@@ -167,12 +168,7 @@ head(data_rehosp)
 
 Generamos la estadística descriptiva; en ella se puede visualizar que será necesario realizar más adelante algunas conversiones en los tipos de datos que vienen por defecto (por ejemplo el estrato aparece como una variable numérica). Pero antes de continuar con la codificación, procederemos a observar como se encuentran nuestras variables.
 
-<ul>
-<li>La variable ingreso es la que más datos perdidos tiene, seguida del estrato.
-<li>La mayoría de los pacientes no estuvieron ingresados en el UCI
-<li>El pago hospitalario promedio fue de $5'706,108 con una desviación de $11'447,135 de la media, lo que indica una gran dispersión en los datos, y posible presencia de outliers.
-<li>El 75% de la información corresponde a usuarios que no se rehospitalizaron, por ende nuestra variable objetivo se encuentra desbalanceada
-<ul>
+<br>
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 skim_with(numeric = list(hist = NULL))
@@ -181,6 +177,15 @@ data_rehosp %>%
   group_by() %>%
   skim()
 ```
+
+<ul>
+<li>La variable ingreso es la que más datos perdidos tiene, seguida del estrato.
+<li>La mayoría de los pacientes no estuvieron ingresados en el UCI o en UCE
+<li>El pago hospitalario promedio fue de $5'706,108 con una desviación de $11'447,135 de la media, lo que indica una gran dispersión en los datos, y posible presencia de outliers.
+<li>El 75% de la información corresponde a usuarios que no se rehospitalizaron, por ende nuestra variable objetivo se encuentra desbalanceada
+<ul>
+
+<br>
 
 A continuacion veremos algunas graficas que permiten realizar inferencias acerca del comportamiento de los datos
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE, fig.width=8}
@@ -269,28 +274,29 @@ p32
 ```
 
 
-<a href="#Inicio">Volver al inicio</a></li>
+[Volver al Índice](#indice)</div>
 
+<hr>
+<h2 id="Perdidos" style="text-align: center;" markdown="1">Generalidades</h2>
+<div style="text-align: justify">
 
-<h2 style="text-align: center;"><a id="Perdidos">Análisis de Registros Pérdidos</a></h2>
+En la gráfica siguiente podemos observar que hay en total 3 variables que no contienen registros vacios: estrato, estado civil e ingreso.
 
-<p style="text-align: justify;">En la gráfica siguiente podemos observar que hay en total 3 variables que no contienen registros vacios: estrato, estado civil e ingreso.</p>
-
-<p style="text-align: justify;">A nivel individual el porcentaje de valores perdidos para todos los casos es superior al 25%. De forma combinada hay 318 registros vacíos en ingreso, 259 en sólo el estrato y 144 en el estado civil, el resto  de los campos nulos corresponde a combinaciones entre dos variables; por ende no podemos decir que la probabilidad de que falte un valor depende solo del valor observado, y usar un método para imputarlo (la forma no es aleatoria).</p>
+A nivel individual el porcentaje de valores perdidos para todos los casos es superior al 25%. De forma combinada hay 318 registros vacíos en ingreso, 259 en sólo el estrato y 144 en el estado civil, el resto  de los campos nulos corresponde a combinaciones entre dos variables; por ende no podemos decir que la probabilidad de que falte un valor depende solo del valor observado, y usar un método para imputarlo (la forma no es aleatoria).
 
 ```{r, message = FALSE, warning = FALSE, eval =TRUE, echo = FALSE}
-aggr(data_rehosp, 
-     combined = FALSE, 
-     prop = c(TRUE, TRUE),
+aggr(data_rehosp,
      col = c("#CCE5FF", "#0066CC"),
      cex.axis = 0.7,
+     prop = c(TRUE, FALSE),
+     number = TRUE,
      gap = 1.5,
      border = NA,
      bars = FALSE,
      ylab = c("Proporción de Datos Perdidos", "Combinaciones"))
 ```
 
-<p style="text-align: justify;">Para corroborar que los datos no faltan al azar, se realiza un grafico de correlación que nos ayude a verificar lo anterior. Para ello, construimos un dataframe que indique si el campo está vacio (1) o no (0); con esta información seleccionamos sólo aquellas columnas que tienen algunos (no todos) sus registros nulos y finalmente creamos la matrix de correlación.</p>
+Para corroborar que los datos no faltan al azar, se realiza un grafico de correlación que nos ayude a verificar lo anterior. Para ello, construimos un dataframe que indique si el campo está vacio (1) o no (0); con esta información seleccionamos sólo aquellas columnas que tienen algunos (no todos) sus registros nulos y finalmente creamos la matrix de correlación.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 matrix_miss <- as.data.frame(abs(is.na(data_rehosp)))
@@ -309,9 +315,9 @@ ggcorrplot(corr_miss,
   labs(title = "Correlacion entre datos perdidos por columna")
 ```
 
-<p style="text-align: justify;">Dado que con la anterior matrix a un nivel de significancia del 5% se comprueba la hipótesis inicial de no aleatoriedad, se procede a construir una tercera categoría para cada una de las variables que posee campos vacíos.</p>
+Dado que con la anterior matrix a un nivel de significancia del 5% se rechaza la hipótesis inicial de no aleatoriedad, se procede a construir una tercera categoría para las variables que poseen menos campos vacíos.
 
-<p style="text-align: justify;">Para estimar si existe una asociación entre las variables que pueda derivarse en colinealidad, se procede primero a verificar que las variables no poseen una distribución normal, una vez realizado esto, se elige el test de Spearman para hallar la correlación lineal por atributo.</p>
+Para estimar si existe una asociación entre las variables que pueda derivarse en colinealidad, se procede primero a verificar que las variables no poseen una distribución normal, una vez realizado esto, se elige el test de Spearman para hallar la correlación lineal por atributo.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 data_rehosp %>%
@@ -326,7 +332,7 @@ lres <- sapply(norm_test, `[`, c("statistic","p.value"))
 t(lres)
 ```
 
-<p style="text-align: justify;">Los resultados confirman que ninguna de las variables pesenta una distribución normal y las correlaciones relacionadas a continuación, verifican posibles asociaciones entre las variables de los días en que el paciente estuvo internado en la Unidad de Cuidados Intensivos, en la Unidad de Cuidados Especiales y los días que el paciente estuvo hospitalizado. Por conocimiento de facto, la relación entre la variable "dias_uci" y "dias_uce" es entendible, ya que cuando un paciente que ha pasado por la Unidad de Cuidados Intensivos pasó su momento de crisis y su estado de salud es más estable, suele ser remitido a la Unidad de Cuidados Especiales. </p>
+Los resultados confirman que ninguna de las variables pesenta una distribución normal y las correlaciones relacionadas a continuación, verifican posibles asociaciones entre las variables de los días en que el paciente estuvo internado en la Unidad de Cuidados Intensivos, en la Unidad de Cuidados Especiales y los días que el paciente estuvo hospitalizado. Por conocimiento de facto, la relación entre la variable "dias_uci" y "dias_uce" es entendible, ya que cuando un paciente que ha pasado por la Unidad de Cuidados Intensivos pasó su momento de crisis y su estado de salud es más estable, suele ser remitido a la Unidad de Cuidados Especiales. 
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 corr_num <- round(cor(data_num),4)
@@ -343,9 +349,9 @@ ggcorrplot(corr_num,
   labs(title = "Correlacion entre variables numéricas")
 ```
 
-<p style="text-align: justify;">Las correlaciones obtenidas no cumplen un umbral suficiente para considerarlas importantes, por ende se procede a conservarlas y evaluar más adelante si es preciso eliminarlas definitivamente al construir un modelo con fines predictivos. Por otro lado, la variable categoría y diagnóstico están altamente correlacionadas con la variable endógena, por lo que es necesario eliminarlas del análisis, para no incurrir en posibles sobreajustes en la etapa de modelado.</p>
+Las correlaciones obtenidas no cumplen un umbral suficiente para considerarlas importantes, por ende se procede a conservarlas y evaluar más adelante si es preciso eliminarlas definitivamente al construir un modelo con fines predictivos. Por otro lado, la variable categoría y diagnóstico están altamente correlacionadas con la variable endógena, por lo que es necesario eliminarlas del análisis, para no incurrir en posibles sobreajustes en la etapa de modelado.
 
-<p style="text-align: justify;">Teniendo en cuenta el análisis de datos perdidos o nulos, se decide descartar la variable ingreso ya que contiene mas de un 30% en datos perdidos.</p>
+Teniendo en cuenta el análisis de datos perdidos o nulos, se decide descartar la variable ingreso ya que contiene mas de un 30% en datos perdidos.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
@@ -376,15 +382,28 @@ data_rehosp %>%
 str(data_rehosp)
 ```
 
-<a href="#Inicio">Volver al inicio</a></li>
+[Volver al Índice](#indice)</div>
 
-<h2 style="text-align: center;"><a id="Analisis">Análisis Exploratorio</a></h2>
+<hr>
+<h2 id="Analisis" style="text-align: center;" markdown="1">Análisis Exploratorio</h2>
 
-<h3 style="text-align: center;"><a id="AnalisisCon">Análisis univariado - variables continuas</a></h3>
+<h3 id="AnalisisCon" style="text-align: center;"markdown="1">Análisis univariado - variables continuas</h3>
+<div style="text-align: justify">
 
-<p style="text-align: justify;">Es evidente la existencia también, de valores atípicos muy marcados tanto en el numéro de días de hospitalización, como en los números de días que el paciente estuvo en la Unidad de Cuidado Intensivo y Especial, en dónde los valores atípicos más grandes suceden en los eventos que terminaron en rehospitalización.</p>
+Es evidente la existencia también, de valores atípicos muy marcados tanto en el numéro de días de hospitalización, como en los números de días que el paciente estuvo en la Unidad de Cuidado Intensivo y Especial, en dónde los valores atípicos más grandes suceden en los eventos que no desencadenaron en rehospitalización.
 
-<p style="text-align: justify;">Con el análisis anterior no sólo se logra identificar variables con presencia de valores atípicos, sino que también es posible evidenciar que los datos se encuentran altamente desbalanceados. Por ende, antes de continur con la exploración de los datos se procede a tratar ambos problemas. En el caso de los outliers se truncará en los casos en que sea necesario, imputando los valores que superen cierto límite en el percntil, tanto mayor como menor.</p>
+```{r}
+
+# data_rehosp %>%
+#   filter(dias_uci > 0) %>%
+#   ggplot (., aes ( dias_uci, color = as.factor(rehosp_oms))) +
+#    geom_histogram(fill="white", alpha=0.5, position="identity") -> p
+# 
+# ggplotly(p)
+```
+
+Con el análisis anterior no sólo se logra identificar variables con presencia de valores atípicos, sino que también es posible evidenciar que los datos se encuentran altamente desbalanceados. Por ende, antes de continuar con la exploración de los datos se procede a tratar ambos problemas. En el caso de los outliers se truncará en los casos en que sea necesario, imputando los valores que superen cierto límite en el percentil, tanto mayor como menor.
+
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 data_rehosp %>%
@@ -406,18 +425,18 @@ data_rehosp %>%
                                                     value = "dias_hosp", q_min = 0, q_max = 0.99)),
          dias_uci = ifelse(rehosp_oms == 0, 
                            outlier(mydata = filter(data_rehosp, rehosp_oms == 0 & dias_uci > 0), 
-                                                    value = "dias_uci", q_min = 0, q_max = 0.99)
+                                                    value = "dias_uci", q_min = 0, q_max = 0.999)
                            , dias_uci),
          dias_uce = ifelse(rehosp_oms == 0, 
                            outlier(mydata = filter(data_rehosp, rehosp_oms == 0 & dias_uce > 0), 
-                                                    value = "dias_uce", q_min = 0, q_max = 0.99)
+                                                    value = "dias_uce", q_min = 0, q_max = 0.999)
                            , dias_uci)) -> data_rehosp
 ```
 
 
-<p style="text-align: justify;">Se puede observar que tanto en el numéro de marcas como en la variable de pago, correspondiente al primer diagnóstico, no parece haber una diferencia significativa en la distribución al discriminar por la variable objetivo binaria, es decir, entre los casos de rehospitalización (1) y casos de no rehospitalización (0). Adicionalmente, la distibución en ambas variables no es simétrica. En el caso de las marcas se observa una asimetría positiva o sesgada a la derecha y de manera similar, aunque menos marcada, para el caso del pago en el primer diagnóstico.</p>
+Se puede observar que en la variable días UCI, correspondiente al primer diagnóstico, no parece haber una diferencia significativa en la distribución al discriminar por la variable objetivo binaria, es decir, entre los casos de rehospitalización (1) y casos de no rehospitalización (0). Adicionalmente, la distibución en ambas variables no es simétrica. En el caso de las marcas se observa una asimetría positiva o sesgada a la derecha y de manera similar, aunque menos marcada, para el caso del pago en el primer diagnóstico.
 
-<p style="text-align: justify;">Los datos se encuentran bastante dispersos y reflejan presencia de outliers.</p>
+Los datos se encuentran bastante dispersos y reflejan presencia de outliers.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
@@ -464,9 +483,11 @@ subplot(p7, p8, p5, p6, nrows = 2, ncol(2))
 
 ```
 
-<h3 style="text-align: center;"><a id="AnalisisCar">Análisis univariado - variables cardinales</a></h3>
+<hr>
+<h3 id="AnalisisCar"style="text-align: center;" markdown = "1">Análisis variables categóricas</h3>
+<div style="text-align: justify">
 
-<p style="text-align: justify;">Observando las variables categóricas la diferencia entre la probabilidad de que el evento ocurra (haya rehospitalización) o no, se puede evidenciar sólo en algunas clases por categoría, pero en general, las proporciones suelen ser bastantes similares, por lo que no es posible elaborar a priori una hipótesis que estipule diferencias significativas en las distribuciones, por lo menos para ninguna de las dos variables relacionadas en el gráfico a continuación.</p>
+Observando las variables categóricas la diferencia entre la probabilidad de que el evento ocurra (haya rehospitalización) o no, se puede evidenciar sólo en algunas clases por categoría, pero en general, las proporciones suelen ser bastantes similares, por lo que no es posible elaborar a priori una hipótesis que estipule diferencias significativas en las distribuciones, por lo menos para ninguna de las dos variables relacionadas en el gráfico a continuación.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
@@ -501,7 +522,7 @@ grid.arrange(p9,
 
 ```
 
-<p style="text-align: justify;">Por otro lado, el atributo que indica el hecho de que se hayan realizado procedimientos quirúrgicos durante la primera hospitalización muestran cierta diferencia en la distribuión por grupo; es más probable que la persona deba ser rehospitalizada de nuevo.</p>
+Por otro lado, el atributo que indica el hecho de que se hayan realizado procedimientos quirúrgicos durante la primera hospitalización muestran cierta diferencia en la distribuión por grupo; es más probable que la persona deba ser rehospitalizada de nuevo.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
@@ -580,20 +601,20 @@ grid.arrange(p15,
 
 ```
 
-<p style="text-align: justify;">Con el objetivo de enriquecer el análisis exploratorio, se calcularán dos medidas muy comúnes de la teoría de la información, éstas permiten inferir algo del poder predictivo que pueden tener las variables independientes, antes de hacer parte de un modelo.</p>
+Con el objetivo de enriquecer el análisis exploratorio, se calcularán dos medidas muy comúnes de la teoría de la información, éstas permiten inferir algo del poder predictivo que pueden tener las variables independientes, antes de hacer parte de un modelo.
 
-<a href="#Inicio">Volver al inicio</a></li>
+[Volver al Índice](#indice)</div>
 
-<h2 style="text-align: center;"><a id="AnalisisWOE">Análisis de clasificación binaria usando WOE y el IV</a></h2>
+<hr>
+<h2 id="AnalisisWOE" style="text-align: center;" markdown ="1">Análisis de clasificación binaria usando WOE y el IV</h2>
+<div style="text-align: justify">
 
-<p style="text-align: justify;">El peso de la evidencia (WOE) y el valor de la información (IV) ayudan, entre otras cosas, a determinar la contribución independiente de cada variable al resultado, y detectar relaciones lineales y no lineales. El WOE mide la relación entre la variable predictiva y el objeto binario, mientras que el IV mide la fuerza predictiva de esa relación.</p>
+El peso de la evidencia (WOE) y el valor de la información (IV) ayudan, entre otras cosas, a determinar la contribución independiente de cada variable al resultado, y detectar relaciones lineales y no lineales. El WOE mide la relación entre la variable predictiva y el objeto binario, mientras que el IV mide la fuerza predictiva de esa relación.
 
-<p style="text-align: justify;">La tabla a continuación contiene los valores del "valor de la información" con y sin el ajuste derivado de la validación cruzada. Cuando se realiza el ajuste con el objetivo de que los re
-
-sultados sean más estables, sólo el pago del diagnóstico, si el paciente pasó por la Unidad de cuidados Especiales la primera vez y si fueron realizados procedimientos quirúrgicos serán las únicas variables con suficiente capacidad de predicción a nivel individual y univariable (Iv > 5%). Cuando se relaja el supuesto, IV sin restar el penalty, se incluirían las marcas y la edad y la ciudad.</p>
+La tabla a continuación contiene los valores del "valor de la información" con y sin el ajuste derivado de la validación cruzada. Cuando se realiza el ajuste con el objetivo de que los resultados sean más estables, sólo el pago del diagnóstico, si el paciente pasó por la Unidad de cuidados Especiales la primera vez y si fueron realizados procedimientos quirúrgicos serán las únicas variables con suficiente capacidad de predicción a nivel individual y univariable (Iv > 5%). Cuando se relaja el supuesto, IV sin restar el penalty, se incluirían las marcas y la edad y la ciudad.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
-set.seed(88)
+set.seed(1234)
 data_rehosp <- data_rehosp %>%
   mutate(id = 1:nrow(.)) 
 
@@ -618,7 +639,7 @@ kable_styling(kable(IV$Summary),
               full_width = F)
 ```
 
-<p style="text-align: justify;">De acuerdo al poder predictivo de cada una de las variables, se eligen aquellas cuyo Valor de la informaciÓn (IV) sea superior al 2% (0,02). Las variables con IV inferiores a este valor se consideran impredictivas y se decide descartarlas. Las variables que continuan, en orden de relevancia segun su poder predictor, son:</p>
+De acuerdo al poder predictivo de cada una de las variables, se eligen aquellas cuyo Valor de la informaciÓn (IV) sea superior al 2% (0,02). Las variables con IV inferiores a este valor se consideran impredictivas y se decide descartarlas. Las variables que continuan, en orden de relevancia segun su poder predictor, son:
 
 <ul>
 <li>pago_hosp</li>
@@ -631,7 +652,7 @@ kable_styling(kable(IV$Summary),
 <li>ciudad</li>
 </ul>
 
-<p style="text-align: justify;">Enfocandonos en el pago del diagnóstico, el cual, es la variable con mayor influencia, el WOE nos indica una relación no lineal, con un incremento en el WOE a medida que disminuye el rango de pago en el diagnóstico.</p>
+Enfocandonos en el pago del diagnóstico, el cual, es la variable con mayor influencia, el WOE nos indica una relación no lineal, con un incremento en el WOE a medida que disminuye el rango de pago en el diagnóstico.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 kable_styling(kable(IV$Tables$edad), 
@@ -648,7 +669,7 @@ for (i in 1:length(n)){
 MultiPlot(IV, IV$Summary$Variable[1:9])
 ```
 
-<p style="text-align: justify;">Como se pudo observar en el analisis del WOE, esta técnica ajusta los valores de las variables numericas en rangos acotados de acuerdo al valor de la informacion de cada una de ellas en relacion con la variable dependiente. Por esto, es importante transformar dichas variables en los rangos recomendados.</p>
+Como se pudo observar en el analisis del WOE, esta técnica ajusta los valores de las variables numericas en rangos acotados de acuerdo al valor de la informacion de cada una de ellas en relacion con la variable dependiente. Por esto, es importante transformar dichas variables en los rangos recomendados.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 # data_rehosp %>%
@@ -675,18 +696,21 @@ MultiPlot(IV, IV$Summary$Variable[1:9])
 
 ```
 
-<a href="#Inicio">Volver al inicio</a></li>
 
-<h2 style="text-align: center;"><a id="Modelo">Modelo</a></h2>
+[Volver al Índice](#indice)</div>
 
-<p style = "text-align: justify;">El objetivo principal del análisis es estimar un modelo predictivo con el cuál se pueda estimar la probabilidad de que un paciente termine en una rehospitalización, asociada a un diangóstico anterior. Para ello se empleará un modelo de regresión logística, el cuál es ampliamente utilizado para resolver problemas de clasificación binaria.</p>
+<hr>
+<h2 id="Modelo" style="text-align: center;" markdown="1">Modelo</a></h2>
+<div style = "text-align: justify">
 
-<p style = "text-align: justify;">Una vez se realizan los filtros de calidad y completitud, y tras lo obtenido en los resultados del WOE, se procede a realizar la seleccion de variables para el modelo. Se tendrán en cuenta entonces, el pago realizado, los días en que estuvo el paciente en la Unidad de Cuidados -intensivos o especiales, el hecho de que se le haya realizado o no una cirugía y el estrato.</p>
+El objetivo principal del análisis es estimar un modelo predictivo con el cuál se pueda estimar la probabilidad de que un paciente termine en una rehospitalización, asociada a un diangóstico anterior. Para ello se empleará un modelo de regresión logística, el cuál es ampliamente utilizado para resolver problemas de clasificación binaria.</p>
 
-<p style = "text-align: justify;">Para evaluar la capacidad de generalización del modelo, se dividirá el conjunto de datos en entrenamiento (70%) y prueba (30%).</p>
+Una vez se realizan los filtros de calidad y completitud, y tras lo obtenido en los resultados del WOE, se procede a realizar la seleccion de variables para el modelo. Se tendrán en cuenta entonces, el pago realizado, los días en que estuvo el paciente en la Unidad de Cuidados -intensivos o especiales, el hecho de que se le haya realizado o no una cirugía y el estrato.
+
+Para evaluar la capacidad de generalización del modelo, se dividirá el conjunto de datos en entrenamiento (70%) y prueba (30%).
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
-set.seed(80)
+set.seed(1234)
 data_rehosp %>%
   select(id,
         pago_hosp,
@@ -714,9 +738,13 @@ training %>%
 
 ```
 
-<h3 style="text-align: center;"><a id="SMOTE">Smote</a></h3>
+[Volver al Índice](#indice)</div>
 
-<p style="text-align: justify;">Como se habia mencionado anteriormente, la informacion se encuentra desbalanceada; esto es, teniendo en cuenta que el problema en que se esta trabajando consiste en la clasificacion de una variable dicotómica, se debe analizar el nivel de representacion de sus posibles valores dentro del conjunto total de datos.</p>
+<hr>
+<h3 id="SMOTE" style="text-align: center;" markdown="1">Smote</h3>
+<div style="text-align: justify">
+
+Como se habia mencionado anteriormente, la informacion se encuentra desbalanceada; esto es, teniendo en cuenta que el problema en que se esta trabajando consiste en la clasificacion de una variable dicotómica, se debe analizar el nivel de representacion de sus posibles valores dentro del conjunto total de datos.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
@@ -729,11 +757,11 @@ row_spec(0,background="#EBF0F7")
 
 ```
 
-<p style="text-align: justify;">Vemos que la representacion para la categoría positiva es un poco mas del 2% de la información. En este caso vamos a realizar un tratamiento que permita aumentar la clase minoritaria, sin utilizar soluciones genéricas como reducir la clase mayoritaria al nivel de la clase menor.</p>
+Vemos que la representacion para la categoría positiva es un poco mas del 2% de la información. En este caso vamos a realizar un tratamiento que permita aumentar la clase minoritaria, sin utilizar soluciones genéricas como reducir la clase mayoritaria al nivel de la clase menor.
 
-<p style="text-align: justify;">Para ello, vamos a utilizar la técnica SMOTE (Synthetic Minority Oversampling Method), la cual genera nuevas instancias artificiales de la clase más pequeña interpolando los valores de las instancias minoritarias más cercanas a una dada.</p>
+Para ello, vamos a utilizar la técnica SMOTE (Synthetic Minority Oversampling Method), la cual genera nuevas instancias artificiales de la clase más pequeña interpolando los valores de las instancias minoritarias más cercanas a una dada.
 
-<p style="text-align: justify;">Por medio de SMOTE se generará un nuevo set de datos de entrenamiento, en el cual se tenga un 60% de informacion para la categoria negativa (rehosp_oms = 0) y 40% para la categoria positiva (rehosp_oms = 0).</p>
+Por medio de SMOTE se generará un nuevo set de datos de entrenamiento, en el cual se tenga un 60% de informacion para la categoria negativa (rehosp_oms = 0) y 40% para la categoria positiva (rehosp_oms = 0).
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 training <- SMOTE(rehosp_oms ~ ., as.data.frame(training), perc.over = 300, perc.under = 200)
@@ -751,10 +779,11 @@ row_spec(0,background="#EBF0F7")
 
 ```
 
-<a href="#Inicio">Volver al inicio</a></li>
+[Volver al Índice](#indice)</div>
 
-
-<h3 style="text-align: center;"><a id="ajustemod">Ajuste del modelo y Estimación de parámetros</a></h3>
+<hr>
+<h3 id="ajustemod" style="text-align: center;" markdown="1">Ajuste del modelo y Estimación de parámetros</h3>
+<div style="text-align: justify">
 
 Del resultado exploratorio anterior, al discriminar el análisis de las variables independientes por nuestra variable objetivo (Rehospitalización), es posible evidenciar una diferencia clara entre las distribuciones para los atributos: Pago/costo del procedimiento y los días en que el usuario estuvo internado ya sea en la Unidad de Cuidados Intensivos o Especiales. Esto podría ser un indicio de que estas variables en particular, pueden llegar a ser relevantes para explicar la probabilidad de ocurrencia del evento, es decir, cuando hubo una hospitalización posterior ligada a un diagnóstico.
 
@@ -765,18 +794,14 @@ mylogit <- glm(rehosp_oms ~ pago_hosp + quirur +  dias_hosp + dias_uce + dias_uc
 summary(mylogit)
 ```
 
-1. Cada cambio en una unidad en el pago hospitalario disminuirá las probabilidades de rehospitalización, pero en una cantidad muy pequeña (-7.308E-08)
-2. Cuando a un paciente se le realiza un procedimiento quirúrgico su probabilidad de que termine hospitalizado de nuevo por el mismo diagnóstico, disminuye en 0.14 en comparación a cuando no se le realiza ninguna cirugía.
+1. Cada cambio en una unidad en el pago hospitalario disminuirá las probabilidades de rehospitalización, pero en una cantidad muy pequeña (-7.316E-08)
+2. Cuando a un paciente se le realiza un procedimiento quirúrgico su probabilidad de que termine hospitalizado de nuevo por el mismo diagnóstico, disminuye en 14% en comparación a cuando no se le realiza ninguna cirugía.
 3. La probabilidad de rehospitalización decrece, al permanecer un día adicional el paciente en la UCE (en 1.45) y la UCI (1.73)
 
 El resto de las variables no son suficientemente explicativas para predecir, de manera significativa, su efecto sobre la variable de respuesta binaria.
 
-<a href="#Inicio">Volver al inicio</a></li>
+Después de estimados los coeficentes se procede a realizar la predicción dentro y fuera de muestra para evaluar la precisión (accuracy) y capacidad de generalización de nuestro modelo. 
 
-
-<h3 style="text-align: center;"><a id="Evaluacion">Prediciendo y evaluando el desempeño del modelo</a></h3>
-
-Después de estimados los coeficentes procedemos a realizar la predicción dentro y fuera de muestra para evaluar la precisión (accuracy) de nuestro modelo. Los resultados 
 ```{r, message = FALSE, echo = FALSE, eval =TRUE}
 pred_train <- predict(mylogit, newdata = training[-7], type = "response")
 y_pred_train <- ifelse(pred_train > 0.5, 1, 0)
@@ -794,6 +819,44 @@ kable(data.frame(Train = mean(y_pred_train == y_act_train), Test = mean(y_pred =
 row_spec(0,background="#EBF0F7")
   
 ```
+
+Los resultados indican un nivel de accuracy sospechosamente elevado, inluso el modelo parece ajustarse mejor con los datos nuevos, que en la parte de entrenamiento. Para ver en detalle como se comporta, al discriminar entre los casos en que el paciente sale definitivamente o termina en una rehospitalización, y evidenciar su desempeño por separado, se estimará la matriz de confusión:
+
+```{r}
+table(as.matrix(testing[, 7]), y_pred > 0.5)
+```
+
+Los resultados no parecen indicar que éste comportamiento se den a causa del desbalanceo. Por un lado tenemos que la sencibilidad y la especificidad corresponden al 96% y 99%. Si se habla en términos de precisión, sería de de un 99% cuando es 0, es decir de un total de 10218 pacientes que no terminaron en hospitalización pude predecir con una exactitud que el 99% no lo harían, mientras que de 249 pacientes que si tubieron una rehospitalización pude predecir que 210 efectivamente lo harían, es decir, mi precisión fue del 84%. 
+
+Sin embargo, no  sólo por los resultados obtenidos con el ajuste del modelo, sino también con lo que veíamos anteriormente en la tabla del valor de la información, las variables días UCI y días UCE parecen explicar de manera casi perfecta la probabilidad de que ocurre un evento rehospitalario y esto puede deberse ........ por ende se decide estimar el modelo sin incluirlas.
+
+A continuación, se obtienen los resultados:
+```{r}
+mylogit_2 <- glm(rehosp_oms ~ pago_hosp + quirur +  dias_hosp + estrato, data = training, family = "binomial")
+summary(mylogit)
+```
+ 
+```{r}
+pred_train <- predict(mylogit_2, newdata = training[-7], type = "response")
+y_pred_train <- ifelse(pred_train > 0.5, 1, 0)
+y_act_train <- training$rehosp_oms
+
+pred = predict(mylogit_2, type = 'response', newdata = testing[-7])
+y_pred = ifelse(pred > 0.5, 1, 0)
+y_act <- testing$rehosp_oms
+
+
+kable(data.frame(Train = mean(y_pred_train == y_act_train), Test = mean(y_pred == y_act))) %>%
+  kable_styling(position = "center", 
+                row_label_position = 1,
+                full_width = F) %>%
+row_spec(0,background="#EBF0F7")
+```
+
+```{r}
+table(as.matrix(testing[, 7]), y_pred > 0.5)
+```
+
 
 ```{r}
 tapply(pred_train, training[,7], FUN = median)
@@ -820,8 +883,6 @@ plot(ROCRperf, colorize=TRUE, print.cutoffs.at=seq(0,1,by=0.1), text.adj=c(-0.2,
 ```
 
 ```{r}
-cm = table(as.matrix(testing[, 7]), y_pred > 0.5)
-cm
 
 Sensibilidad = 210/218 
 Sensibilidad
