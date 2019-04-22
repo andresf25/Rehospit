@@ -1,6 +1,6 @@
 ---
-title: "<center><br>Modelo Predicción de Rehospitalizaciones</br>"
-Date: "<center>Abril/2019</center>"
+title: 
+Date: 
 output: html_notebook
 ---
 
