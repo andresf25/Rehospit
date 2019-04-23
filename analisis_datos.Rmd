@@ -192,7 +192,7 @@ A continuacion veremos algunas graficas que permiten realizar inferencias acerca
 require(scales)
 
 data_rehosp %>%
-  filter(pago_hosp > 0 & quirur == 0) %>%
+  filter(pago_hosp > 0 & quirur == 0 & rehosp_oms == 1) %>%
   group_by(fecha_ingreso) %>%
   summarise_all(~sum(pago_hosp)) %>%
     ggplot(
@@ -209,10 +209,10 @@ data_rehosp %>%
          y = "Pago Hosp") +
     theme(plot.title = element_text(hjust = 0.5),
           legend.position = "none") + 
-    scale_y_continuous(labels = dollar) -> p30
+    scale_y_continuous(labels = dollar) -> p11
 
-p30 <- ggplotly(p30)
-p30
+p11 <- ggplotly(p11)
+p11
 ```
 
 ```{r}
@@ -232,34 +232,10 @@ data_rehosp %>%
     theme(axis.text.x = element_text(angle = 90),
           plot.title = element_text(hjust = 0.5),
           legend.position = "none") +
-    scale_fill_brewer(palette = "Blues")-> p31
+    scale_fill_brewer(palette = "Blues")-> p12
 
-p31 <- ggplotly(p31)
-p31
-
-```
-
-```{r}
-data_rehosp %>%
-  group_by(diagnos) %>%
-  summarise_all(~sum(rehosp_oms)) %>%
-  filter(rehosp_oms > 8) %>%
-    ggplot(
-      aes(fill=diagnos,
-          x=diagnos, 
-          y=rehosp_oms)) +
-    geom_bar(stat = "identity") + 
-    theme_minimal() +
-    labs(title = "Rehospitalizacion por diagnostico",
-         x= "Diagnostico",
-         y = "Cant. Rehosp") +
-    theme(axis.text.x = element_text(angle = 90),
-          plot.title = element_text(hjust = 0.5),
-          legend.position = "none") +
-    scale_fill_brewer(palette = "Blues")-> p32
-
-p32 <- ggplotly(p32)
-p32
+p12 <- ggplotly(p12)
+p12
 
 ```
 
@@ -274,20 +250,19 @@ data_rehosp %>%
       aes(
         x=fecha_ingreso, 
         y=rehosp_oms)) +
-    geom_line(color="#99CCFF", 
-      size=0.3) + 
+    geom_point(color="#99CCFF", 
+      size=2) + 
     geom_smooth(method = "lm") + 
     theme_minimal() +
     labs(title = "Numero Rehosp en el tiempo",
         x= "Fecha Rehosp.",
         y = "Num. Rehosp.") +
    theme(plot.title = element_text(hjust = 0.5),
-         legend.position = "none") -> p34
+         legend.position = "none") -> p13
  
-p34 <- ggplotly(p34)
-p34
+p13 <- ggplotly(p13)
+p13
 ```
-
 
 [Volver al Índice](#indice)</div>
 
@@ -295,13 +270,13 @@ p34
 <h2 id="Perdidos" style="text-align: center;" markdown="1">Generalidades</h2>
 <div style="text-align: justify">
 
-En la gráfica siguiente podemos observar que hay en total 3 variables que no contienen registros vacios: estrato, estado civil e ingreso.
+En la gráfica siguiente podemos observar que hay en total 4 variables que contienen registros vacios: estrato, estado civil, ingreso y proveedor.
 
-A nivel individual el porcentaje de valores perdidos para todos los casos es superior al 25%. De forma combinada hay 318 registros vacíos en ingreso, 259 en sólo el estrato y 144 en el estado civil, el resto  de los campos nulos corresponde a combinaciones entre dos variables; por ende no podemos decir que la probabilidad de que falte un valor depende solo del valor observado, y usar un método para imputarlo (la forma no es aleatoria).
+A nivel individual el porcentaje de valores perdidos para todos los casos es superior al 25%. De forma combinada hay más del 30% de campos vacíos; por ende no podemos decir que la probabilidad de que falte un valor depende solo del valor observado, y usar un método para imputarlo (la forma no es aleatoria).
 
 ```{r, message = FALSE, warning = FALSE, eval =TRUE, echo = FALSE}
 aggr(data_rehosp,
-     col = c("#CCE5FF", "#0066CC"),
+     col = c("#CCE5FF", "#99CCFF"),
      cex.axis = 0.7,
      prop = c(TRUE, FALSE),
      number = TRUE,
@@ -311,26 +286,7 @@ aggr(data_rehosp,
      ylab = c("Proporción de Datos Perdidos", "Combinaciones"))
 ```
 
-Para corroborar que los datos no faltan al azar, se realiza un grafico de correlación que nos ayude a verificar lo anterior. Para ello, construimos un dataframe que indique si el campo está vacio (1) o no (0); con esta información seleccionamos sólo aquellas columnas que tienen algunos (no todos) sus registros nulos y finalmente creamos la matrix de correlación.
-
-```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
-matrix_miss <- as.data.frame(abs(is.na(data_rehosp)))
-only_miss <- matrix_miss[,sapply(matrix_miss, sd) > 0]
-corr_miss <- round(cor(only_miss),3)
-p.mat <- cor_pmat(only_miss)
-
-ggcorrplot(corr_miss, 
-           type = "lower",
-           outline.col = "white",
-           p.mat = p.mat,
-           sig.level = 0.05,
-           ggtheme = ggplot2::theme_minimal,
-           lab = TRUE,
-           colors = c("#99CCFF", "white", "#0066CC")) + 
-  labs(title = "Correlacion entre datos perdidos por columna")
-```
-
-Dado que con la anterior matrix a un nivel de significancia del 5% se rechaza la hipótesis inicial de no aleatoriedad, se procede a construir una tercera categoría para las variables que poseen menos campos vacíos.
+Dado lo anterior, se hace necesario construir una tercera categoría, por lo menos para las variables que poseen menos campos vacíos (estrato y estado civil).
 
 Para estimar si existe una asociación entre las variables que pueda derivarse en colinealidad, se procede primero a verificar que las variables no poseen una distribución normal, una vez realizado esto, se elige el test de Spearman para hallar la correlación lineal por atributo.
 
@@ -364,9 +320,9 @@ ggcorrplot(corr_num,
   labs(title = "Correlacion entre variables numéricas")
 ```
 
-Las correlaciones obtenidas no cumplen un umbral suficiente para considerarlas importantes, por ende se procede a conservarlas y evaluar más adelante si es preciso eliminarlas definitivamente al construir un modelo con fines predictivos. Por otro lado, la variable categoría y diagnóstico están altamente correlacionadas con la variable endógena, por lo que es necesario eliminarlas del análisis, para no incurrir en posibles sobreajustes en la etapa de modelado.
+Sin embargo, las correlaciones obtenidas no cumplen un umbral suficiente para considerarlas importantes, por ende se procede a conservarlas y evaluar más adelante si es preciso eliminarlas definitivamente. Por otro lado, la variable categoría y diagnóstico están altamente correlacionadas con la variable endógena, por lo que es necesario eliminarlas del análisis, para no incurrir en posibles sobreajustes en la etapa de modelado.
 
-Teniendo en cuenta el análisis de datos perdidos o nulos, se decide descartar la variable ingreso ya que contiene mas de un 30% en datos perdidos.
+Como se había mencionado anteriormente, teniendo en cuenta el análisis de datos perdidos o nulos, se decide descartar la variable ingreso ya que contiene mas de un 30% en datos perdidos.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
@@ -386,13 +342,11 @@ data_rehosp %>%
          marcas = cut(marcas, breaks = (0:3)*2, include.lowest = TRUE),
          est_civil = as.factor(est_civil),
          genero = as.factor(genero),
-         ciudad = as.factor(ciudad),
          quirur = as.factor(quirur),
-         proveedor = as.factor(proveedor),
          ramo = as.factor(ramo),
          edad = as.factor(edad),
          estrato = as.factor(estrato)) %>%
-  select(-diagnos, -categoria, -fecha_ingreso, -ingreso) -> data_rehosp
+  select(-diagnos, -categoria, -fecha_ingreso, -ingreso, -proveedor, -ciudad) -> data_rehosp
 
 str(data_rehosp)
 ```
@@ -407,18 +361,42 @@ str(data_rehosp)
 
 Es evidente la existencia también, de valores atípicos muy marcados tanto en el numéro de días de hospitalización, como en los números de días que el paciente estuvo en la Unidad de Cuidado Intensivo y Especial, en dónde los valores atípicos más grandes suceden en los eventos que no desencadenaron en rehospitalización.
 
-```{r}
+```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
-# data_rehosp %>%
-#   filter(dias_uci > 0) %>%
-#   ggplot (., aes ( dias_uci, color = as.factor(rehosp_oms))) +
-#    geom_histogram(fill="white", alpha=0.5, position="identity") -> p
-# 
-# ggplotly(p)
+data_rehosp %>%
+  filter(dias_uci > 0) %>%
+  ggplot (., aes ( dias_uci, color = as.factor(rehosp_oms))) +
+  geom_histogram(fill="white", alpha=0.5, position="identity") +
+  theme_minimal() +
+  labs(x = "Días UCI", 
+       y = "Frecuencia Relativa", 
+       fill = " ") +
+  ggtitle("Días en Unidad de Cuidados") +
+  theme(plot.title = element_text(hjust = 0.5)) + 
+    scale_colour_brewer(palette = "Paired") +
+  theme(legend.position = "none") -> p1
+
+data_rehosp %>%
+  filter(dias_uce > 0) %>%
+  ggplot (., aes ( dias_uce, color = as.factor(rehosp_oms))) +
+  geom_histogram(fill="white", alpha=0.5, position="identity") +
+  theme_minimal() +
+  labs(x = "Días UCE", 
+       y = "Frecuencia Relativa", 
+       fill = "Rehospitalización") +
+  ggtitle("Número de días en Unidad de Cuidados") +
+  theme(plot.title = element_text(hjust = 0.5)) + 
+    scale_colour_brewer(palette = "Paired") +
+  theme(legend.position = "right") -> p2
+
+p1 <- ggplotly(p1)
+p2 <- ggplotly(p2)
+
+subplot(p1, p2, titleX = TRUE, titleY = TRUE) %>%
+  layout(showlegend = (FALSE))
 ```
 
-Con el análisis anterior no sólo se logra identificar variables con presencia de valores atípicos, sino que también es posible evidenciar que los datos se encuentran altamente desbalanceados. Por ende, antes de continuar con la exploración de los datos se procede a tratar ambos problemas. En el caso de los outliers se truncará en los casos en que sea necesario, imputando los valores que superen cierto límite en el percentil, tanto mayor como menor.
-
+Con el análisis anterior no sólo se logra identificar la presencia de valores atípicos, sino que también es posible evidenciar que los datos se encuentran altamente desbalanceados. En el caso de los outliers se truncará en los casos en que sea necesario, imputando los valores que superen cierto límite en el percentil, tanto mayor como menor.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 data_rehosp %>%
@@ -449,13 +427,9 @@ data_rehosp %>%
 ```
 
 
-Se puede observar que en la variable días UCI, correspondiente al primer diagnóstico, no parece haber una diferencia significativa en la distribución al discriminar por la variable objetivo binaria, es decir, entre los casos de rehospitalización (1) y casos de no rehospitalización (0). Adicionalmente, la distibución en ambas variables no es simétrica. En el caso de las marcas se observa una asimetría positiva o sesgada a la derecha y de manera similar, aunque menos marcada, para el caso del pago en el primer diagnóstico.
-
-Los datos se encuentran bastante dispersos y reflejan presencia de outliers.
-
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
-p5 <- myboxplot(mydata = filter(data_rehosp, pago_hosp > 0), 
+p3 <- myboxplot(mydata = filter(data_rehosp, pago_hosp > 0), 
                 myexposure = "rehosp_oms", 
                 myoutcome = "pago_hosp", 
                 mytitle = "Pago hospitalización", 
@@ -463,7 +437,7 @@ p5 <- myboxplot(mydata = filter(data_rehosp, pago_hosp > 0),
                 mylabel_y = "Pago Diag", 
                 my_fill = "")
 
-p6 <- myboxplot(mydata = data_rehosp, 
+p4 <- myboxplot(mydata = data_rehosp, 
                 myexposure = "rehosp_oms", 
                 myoutcome = "dias_hosp", 
                 mytitle = "Total dias hospitalizado", 
@@ -471,7 +445,7 @@ p6 <- myboxplot(mydata = data_rehosp,
                 mylabel_y = "Dias hospitalización", 
                 my_fill = "")
 
-p7 <- myboxplot(mydata = filter(data_rehosp, dias_uci > 0), 
+p5 <- myboxplot(mydata = filter(data_rehosp, dias_uci > 0), 
                 myexposure = "rehosp_oms", 
                 myoutcome = "dias_uci", 
                 mytitle =  "Total días UCI", 
@@ -479,7 +453,7 @@ p7 <- myboxplot(mydata = filter(data_rehosp, dias_uci > 0),
                 mylabel_y = "Dias UCI", 
                 my_fill = "")
 
-p8 <- myboxplot(mydata = filter(data_rehosp, dias_uce > 0), 
+p6 <- myboxplot(mydata = filter(data_rehosp, dias_uce > 0), 
                 myexposure = "rehosp_oms", 
                 myoutcome = "dias_uce", 
                 mytitle = "Total días UCE", 
@@ -487,16 +461,23 @@ p8 <- myboxplot(mydata = filter(data_rehosp, dias_uce > 0),
                 mylabel_y = "Dias UCE", 
                 my_fill = "")
 
+p3 <- ggplotly(p3)
+p4 <- ggplotly(p4)
 p5 <- ggplotly(p5)
 p6 <- ggplotly(p6)
-p7 <- ggplotly(p7)
-p8 <- ggplotly(p8)
 
-subplot(p7, p8, p5, p6, nrows = 2, ncol(2))
+subplot(p5, p6, p3, p4, 
+        nrows = 2, ncol(2), 
+        titleX = TRUE, titleY = TRUE) %>%
+  layout(showlegend = (FALSE))
 
 
 
 ```
+
+Se puede observar que en la variable días UCI, correspondiente al primer diagnóstico, no parece haber una diferencia significativa en la distribución al discriminar por la variable objetivo binaria, es decir, entre los casos de rehospitalización (1) y casos de no rehospitalización (0). Adicionalmente, la distibución en ambas variables no es simétrica. 
+
+A pesar de que los datos se encuentran bastante dispersos, se logra identificar diferencias en la variable del pago -con valores más altos en los caso en que no terminó de buevo hospitalizado, y en el casó del número de días hospitalizado los rangos son mucho más pequeños cuando hay una rehospitalización.
 
 <hr>
 <h3 id="AnalisisCar"style="text-align: center;" markdown = "1">Análisis variables categóricas</h3>
@@ -506,7 +487,7 @@ Observando las variables categóricas la diferencia entre la probabilidad de que
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
-p9 <- mygeom_bar(mydata = data_rehosp, 
+p7 <- mygeom_bar(mydata = data_rehosp, 
                  myexposure = "edad", 
                  myoutcome = "rehosp_oms", 
                  mytitle = "Edad", 
@@ -516,7 +497,7 @@ p9 <- mygeom_bar(mydata = data_rehosp,
                  my_angle = NULL,
                  my_legend = "right")
 
-p10 <- mygeom_bar(mydata = data_rehosp, 
+p8 <- mygeom_bar(mydata = data_rehosp, 
                   myexposure = "estrato", 
                   myoutcome = "rehosp_oms", 
                   mytitle = "Estrato", 
@@ -526,14 +507,8 @@ p10 <- mygeom_bar(mydata = data_rehosp,
                   my_angle = NULL,
                   my_legend = "none")
 
-grid.arrange(p9,
-             p10)
-
-#p9 <- ggplotly(p9)
-#p10 <- ggplotly(p10)
-
-#subplot(p9, p10, nrows = 2)
-
+grid.arrange(p7,
+             p8)
 
 ```
 
@@ -541,7 +516,7 @@ Por otro lado, el atributo que indica el hecho de que se hayan realizado procedi
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
-p14 <- mygeom_bar(mydata = data_rehosp, 
+p9 <- mygeom_bar(mydata = data_rehosp, 
                   myexposure = "quirur", 
                   myoutcome = "rehosp_oms", 
                   mytitle = "Proc quirúrgico", 
@@ -549,44 +524,9 @@ p14 <- mygeom_bar(mydata = data_rehosp,
                   mylabel_y = "Frecuencia", 
                   my_fill = "Rehospitalización", 
                   my_angle = NULL,
-                  my_legend = "bottom")
+                  my_legend = "right")
 
-p17 <- mygeom_bar(mydata = data_rehosp, 
-                  myexposure = "marcas", 
-                  myoutcome = "rehosp_oms", 
-                  mytitle = "Marcas", 
-                  mylabel_x = "", 
-                  mylabel_y = "Frecuencia", 
-                  my_fill = "Rehospitalización", 
-                  my_angle = NULL,
-                  my_legend = "bottom")
-
-grid.arrange(p14,
-              p17,
-              ncol = 1,
-              nrow = 2)
-
-#p14 <- ggplotly(p14)
-#p17 <- ggplotly(p17)
-
-#subplot(p14, p17, ncol(1), nrows = 2)
-
-
-```
-
-```{r, warning = FALSE, message = FALSE, echo = FALSE, eval = FALSE}
-
-p15 <- mygeom_bar(mydata = data_rehosp, 
-                  myexposure = "ramo", 
-                  myoutcome = "rehosp_oms", 
-                  mytitle = "Ramo Seguro", 
-                  mylabel_x = "", 
-                  mylabel_y = "Frecuencia", 
-                  my_fill = "Rehospitalización", 
-                  my_angle = NULL,
-                  my_legend = "none")
-
-p16 <- mygeom_bar(mydata = data_rehosp, 
+p10 <- mygeom_bar(mydata = data_rehosp, 
                   myexposure = "est_civil", 
                   myoutcome = "rehosp_oms", 
                   mytitle = "Estado civil", 
@@ -596,23 +536,10 @@ p16 <- mygeom_bar(mydata = data_rehosp,
                   my_angle = NULL,
                   my_legend = "right")
 
-
-p11 <- mygeom_bar(mydata = data_rehosp, 
-                  myexposure = "genero", 
-                  myoutcome = "rehosp_oms", 
-                  mytitle = "Género", 
-                  mylabel_x = "", 
-                  mylabel_y = "Frecuencia", 
-                  my_fill = "Rehospitalización", 
-                  my_angle = NULL,
-                  my_legend = "none")
-
-grid.arrange(p15,
-             p11,
-             p16,
-            ncol = 2,
-            nrow = 2,
-            layout_matrix = rbind(c(1,2), c(3,3)))
+grid.arrange(p9,
+              p10,
+              ncol = 1,
+              nrow = 2)
 
 ```
 
@@ -626,7 +553,7 @@ Con el objetivo de enriquecer el análisis exploratorio, se calcularán dos medi
 
 El peso de la evidencia (WOE) y el valor de la información (IV) ayudan, entre otras cosas, a determinar la contribución independiente de cada variable al resultado, y detectar relaciones lineales y no lineales. El WOE mide la relación entre la variable predictiva y el objeto binario, mientras que el IV mide la fuerza predictiva de esa relación.
 
-La tabla a continuación contiene los valores del "valor de la información" con y sin el ajuste derivado de la validación cruzada. Cuando se realiza el ajuste con el objetivo de que los resultados sean más estables, sólo el pago del diagnóstico, si el paciente pasó por la Unidad de cuidados Especiales la primera vez y si fueron realizados procedimientos quirúrgicos serán las únicas variables con suficiente capacidad de predicción a nivel individual y univariable (Iv > 5%). Cuando se relaja el supuesto, IV sin restar el penalty, se incluirían las marcas y la edad y la ciudad.
+La tabla a continuación contiene los valores del "valor de la información" con y sin el ajuste derivado de la validación cruzada. Cuando se realiza el ajuste con el objetivo de que los resultados sean más estables, tanto pago del diagnóstico, el hecho de que el paciente halla pasado por la Unidad de cuidados, y si fueron realizados procedimientos quirúrgicos serán las únicas variables con suficiente capacidad de predicción a nivel individual y univariable (Iv > 0.05). Cuando se relaja el supuesto, IV sin restar el penalty, se incluirían los días en que estuvo hospitalizado.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 set.seed(1234)
@@ -663,11 +590,15 @@ De acuerdo al poder predictivo de cada una de las variables, se eligen aquellas 
 <li>dias_uci</li>
 <li>proveedor</li>
 <li>dias_hosp</li>
-<li>estrato</li>
+<li>edad</li>
+<li>genero</li>
 <li>ciudad</li>
 </ul>
 
-Enfocandonos en el pago del diagnóstico, el cual, es la variable con mayor influencia, el WOE nos indica una relación no lineal, con un incremento en el WOE a medida que disminuye el rango de pago en el diagnóstico.
+
+Sin embargo, tanto la ciudad como el proveedor no serán tenidos en cuenta, por que pueden llegar a condicionar nuestra variable objetivo.
+
+Enfocandonos en el pago del diagnóstico, el cual, es una de las variables con mayor influencia, el WOE nos indica una relación no lineal, con un incremento en el WOE a medida que disminuye el rango de pago en el diagnóstico.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 kable_styling(kable(IV$Tables$edad), 
@@ -681,7 +612,7 @@ n <- names(IV$Tables)
 for (i in 1:length(n)){
    plot_infotables(IV, n[i])}
 
-MultiPlot(IV, IV$Summary$Variable[1:9])
+MultiPlot(IV, IV$Summary$Variable[c(1,2,3,4,6,10)])
 ```
 
 Como se pudo observar en el analisis del WOE, esta técnica ajusta los valores de las variables numericas en rangos acotados de acuerdo al valor de la informacion de cada una de ellas en relacion con la variable dependiente. Por esto, es importante transformar dichas variables en los rangos recomendados.
@@ -718,9 +649,9 @@ Como se pudo observar en el analisis del WOE, esta técnica ajusta los valores d
 <h2 id="Modelo" style="text-align: center;" markdown="1">Modelo</a></h2>
 <div style = "text-align: justify">
 
-El objetivo principal del análisis es estimar un modelo predictivo con el cuál se pueda estimar la probabilidad de que un paciente termine en una rehospitalización, asociada a un diangóstico anterior. Para ello se empleará un modelo de regresión logística, el cuál es ampliamente utilizado para resolver problemas de clasificación binaria.</p>
+El objetivo principal del análisis es estimar un modelo predictivo con el cuál se pueda estimar la probabilidad de que un paciente termine en una rehospitalización, asociada a un diangóstico anterior. Para ello se empleará un modelo de regresión logística, el cuál es ampliamente utilizado para resolver problemas de clasificación binaria.
 
-Una vez se realizan los filtros de calidad y completitud, y tras lo obtenido en los resultados del WOE, se procede a realizar la seleccion de variables para el modelo. Se tendrán en cuenta entonces, el pago realizado, los días en que estuvo el paciente en la Unidad de Cuidados -intensivos o especiales, el hecho de que se le haya realizado o no una cirugía y el estrato.
+Una vez se realizan los filtros de calidad y completitud, y tras lo obtenido en los resultados del WOE, se procede a realizar la seleccion de variables para el modelo. Se tendrán en cuenta entonces, el pago realizado, los días en que estuvo el paciente de forma general, los días que permaneció en la Unidad de Cuidados -intensivos o especiales, el hecho de que se le haya realizado o no una cirugía, el género y la edad.
 
 Para evaluar la capacidad de generalización del modelo, se dividirá el conjunto de datos en entrenamiento (70%) y prueba (30%).
 
@@ -733,10 +664,11 @@ data_rehosp %>%
         dias_uce,
         dias_uci,
         dias_hosp,
-        estrato,
-        rehosp_oms) -> data_rehosp
+        genero,
+        edad,
+        rehosp_oms) -> model_rehosp
 
-data_rehosp %>%
+model_rehosp %>%
   sample_frac(size = 0.7) -> training
 
 data_rehosp %>%
@@ -763,7 +695,7 @@ Como se habia mencionado anteriormente, la informacion se encuentra desbalancead
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
-kable(as.data.frame(prop.table(table(data_rehosp$rehosp_oms)))) %>%
+kable(as.data.frame(prop.table(table(model_rehosp$rehosp_oms)))) %>%
 kable_styling(position = "center", 
               row_label_position = 1,
               full_width = F) %>%
@@ -805,12 +737,12 @@ Del resultado exploratorio anterior, al discriminar el análisis de las variable
 A continuación, al ajustar el modelo obtenemos los siguientes resultados:
 
 ```{r, message = FALSE, echo = FALSE, eval =TRUE}
-mylogit <- glm(rehosp_oms ~ pago_hosp + quirur +  dias_hosp + dias_uce + dias_uci + estrato, data = training, family = "binomial")
+mylogit <- glm(rehosp_oms ~ pago_hosp + quirur +  dias_hosp + edad + genero, data = training, family = "binomial")
 summary(mylogit)
 ```
 
-1. Cada cambio en una unidad en el pago hospitalario disminuirá las probabilidades de rehospitalización, pero en una cantidad muy pequeña (-7.316E-08)
-2. Cuando a un paciente se le realiza un procedimiento quirúrgico su probabilidad de que termine hospitalizado de nuevo por el mismo diagnóstico, disminuye en 14% en comparación a cuando no se le realiza ninguna cirugía.
+1. Cada cambio en una unidad en el pago hospitalario disminuirá las probabilidades de rehospitalización, pero en una cantidad muy pequeña (-6.953E-08)
+2. Cuando a un paciente se le realiza un procedimiento quirúrgico su probabilidad de que termine hospitalizado de nuevo por el mismo diagnóstico, disminuye en más del 19% en comparación a cuando no se le realiza ninguna cirugía.
 3. La probabilidad de rehospitalización decrece, al permanecer un día adicional el paciente en la UCE (en 1.45) y la UCI (1.73)
 
 El resto de las variables no son suficientemente explicativas para predecir, de manera significativa, su efecto sobre la variable de respuesta binaria.
