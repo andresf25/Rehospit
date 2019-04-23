@@ -187,7 +187,7 @@ data_rehosp %>%
 
 <br>
 
-A continuacion veremos algunas graficas que permiten realizar inferencias acerca del comportamiento de los datos
+A continuacion veremos algunas graficas que permiten realizar inferencias acerca del comportamiento de los datos:
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE, fig.width=8}
 require(scales)
 
@@ -195,13 +195,21 @@ data_rehosp %>%
   filter(pago_hosp > 0 & quirur == 0) %>%
   group_by(fecha_ingreso) %>%
   summarise_all(~sum(pago_hosp)) %>%
-  ggplot(aes(x=fecha_ingreso, y=pago_hosp)) +
-  geom_line() + geom_smooth(method = "lm") + theme_minimal() +
-  labs(title = "Pago Hosp en el tiempo",
+    ggplot(
+      aes(
+        x=fecha_ingreso, 
+        y=pago_hosp)) +
+    geom_line(
+      color = "#99CCFF", 
+      size = 0.3) + 
+    geom_smooth(method = "lm") + 
+    theme_minimal() +
+    labs(title = "Pago Hosp en el tiempo",
          x= "Fecha Ingreso",
          y = "Pago Hosp") +
     theme(plot.title = element_text(hjust = 0.5),
-          legend.position = "none") + scale_y_continuous(labels = dollar) -> p30
+          legend.position = "none") + 
+    scale_y_continuous(labels = dollar) -> p30
 
 p30 <- ggplotly(p30)
 p30
@@ -235,9 +243,9 @@ p31
 data_rehosp %>%
   group_by(diagnos) %>%
   summarise_all(~sum(rehosp_oms)) %>%
-  filter(rehosp_oms > 3) %>%
+  filter(rehosp_oms > 8) %>%
     ggplot(
-      aes(fill="none",
+      aes(fill=diagnos,
           x=diagnos, 
           y=rehosp_oms)) +
     geom_bar(stat = "identity") + 
@@ -247,7 +255,8 @@ data_rehosp %>%
          y = "Cant. Rehosp") +
     theme(axis.text.x = element_text(angle = 90),
           plot.title = element_text(hjust = 0.5),
-          legend.position = "none") -> p32
+          legend.position = "none") +
+    scale_fill_brewer(palette = "Blues")-> p32
 
 p32 <- ggplotly(p32)
 p32
@@ -255,22 +264,28 @@ p32
 ```
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE, fig.width=8, fig.height=4}
-# require(scales)
-# 
-# data_rehosp %>%
-#   filter(rehosp_oms > 0) %>%
-#   group_by(fecha_ingreso) %>%
-#   summarise_all(~sum(rehosp_oms)) %>%
-#   ggplot(aes(x=fecha_ingreso, y=rehosp_oms)) +
-#   geom_line() + geom_smooth(method = "lm") + theme_minimal() +
-#   labs(title = "Numero Rehosp en el Tiempo",
-#          x= "Fecha Rehosp.",
-#          y = "Num. Rehosp.") +
-#     theme(plot.title = element_text(hjust = 0.5),
-#           legend.position = "none") -> p34
-# 
-# p34 <- ggplotly(p34)
-# p34
+ require(scales)
+ 
+data_rehosp %>%
+  filter(rehosp_oms > 0) %>%
+  group_by(fecha_ingreso) %>%
+  summarise_all(~sum(rehosp_oms)) %>%
+    ggplot(
+      aes(
+        x=fecha_ingreso, 
+        y=rehosp_oms)) +
+    geom_line(color="#99CCFF", 
+      size=0.3) + 
+    geom_smooth(method = "lm") + 
+    theme_minimal() +
+    labs(title = "Numero Rehosp en el tiempo",
+        x= "Fecha Rehosp.",
+        y = "Num. Rehosp.") +
+   theme(plot.title = element_text(hjust = 0.5),
+         legend.position = "none") -> p34
+ 
+p34 <- ggplotly(p34)
+p34
 ```
 
 
