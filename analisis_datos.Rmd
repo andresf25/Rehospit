@@ -797,7 +797,7 @@ row_spec(0,background="#EBF0F7")
 [Volver al Índice](#indice)</div>
 
 <hr>
-<h3 id="ajustemod" style="text-align: center;" markdown="1">Ajuste del modelo y Estimación de parámetros</h3>
+<h3 id="Ajustemod" style="text-align: center;" markdown="1">Ajuste del modelo y Estimación de parámetros</h3>
 <div style="text-align: justify">
 
 Del resultado exploratorio anterior, al discriminar el análisis de las variables independientes por nuestra variable objetivo (Rehospitalización), es posible evidenciar una diferencia clara entre las distribuciones para los atributos: Pago/costo del procedimiento y los días en que el usuario estuvo internado ya sea en la Unidad de Cuidados Intensivos o Especiales. Esto podría ser un indicio de que estas variables en particular, pueden llegar a ser relevantes para explicar la probabilidad de ocurrencia del evento, es decir, cuando hubo una hospitalización posterior ligada a un diagnóstico.
@@ -841,9 +841,9 @@ Los resultados indican un nivel de accuracy sospechosamente elevado, inluso el m
 table(as.matrix(testing[, 7]), y_pred > 0.5)
 ```
 
-Los resultados no parecen indicar que éste comportamiento se den a causa del desbalanceo. Por un lado tenemos que la sencibilidad y la especificidad corresponden al 96% y 99%. Si se habla en términos de precisión, sería de de un 99% cuando es 0, es decir de un total de 10218 pacientes que no terminaron en hospitalización pude predecir con una exactitud que el 99% no lo harían, mientras que de 249 pacientes que si tubieron una rehospitalización pude predecir que 210 efectivamente lo harían, es decir, mi precisión fue del 84%. 
+Los resultados no parecen indicar que éste comportamiento se den a causa del desbalanceo. Por un lado tenemos que la sensibilidad y la especificidad corresponden al 96% y 99%. Si se habla en términos de precisión, sería de de un 99% cuando es 0, es decir de un total de 10218 pacientes que no terminaron en hospitalización pude predecir con una exactitud que el 99% no lo harían, mientras que de 249 pacientes que si tuvieron una rehospitalización pude predecir que 210 efectivamente lo harían, es decir, mi precisión fue del 84%. 
 
-Sin embargo, no  sólo por los resultados obtenidos con el ajuste del modelo, sino también con lo que veíamos anteriormente en la tabla del valor de la información, las variables días UCI y días UCE parecen explicar de manera casi perfecta la probabilidad de que ocurre un evento rehospitalario y esto puede deberse ........ por ende se decide estimar el modelo sin incluirlas.
+Sin embargo, no sólo por los resultados obtenidos con el ajuste del modelo, sino también con lo que veíamos anteriormente en la tabla del valor de la información, las variables días UCI y días UCE parecen explicar de manera casi perfecta la probabilidad de que ocurre un evento rehospitalario y esto puede deberse ........ por ende se decide estimar el modelo sin incluirlas.
 
 A continuación, se obtienen los resultados:
 ```{r}
@@ -908,4 +908,22 @@ especificidad
 Accuracy = (10243 + 210)/10469
 Accuracy
 ```
+
+[Volver al Índice](#indice)</div>
+
+<hr>
+<h3 id="Recomendacion" style="text-align: center;" markdown="1">Recomendaciones y Estrategias</h3>
+<div style="text-align: justify">
+
+Como se pudo observar en la definicion de la variable endógena de la rehospitalización, esta se construyó mediante dos restricciones en el set de datos inicial:
+1. Que dentro de los siguientes 30 dias a la primera hospitalización surgiera una segunda hospitalizacion.
+2. Que para aquellos casos donde hay dos eventos en la ventana de 30 días, los códigos de diagnóstico CIE10 del primero y segundo evento pertenecieran a la misma categoría de diagóstico en la clasificación de la OMS.
+
+En este sentido, tenemos dos condicionantes que se podrían ajustar, ya que restringen la posibilidad de encontrar un mayor numero de casos que se puedan considerar como rehospitalización; por ejemplo, algunos estudios sugieren que la ventana de tiempo podría ser de 15 dias entre el primer y segundo evento. En cuanto a la similitud de los diagnósticos de ambos eventos, para este modelo se tuvo en cuenta solo si ambos diagnósticos pertenecen a la misma categoría, sin embargo es importante tener en cuenta que hay diagnósticos que pueden desencadenar en otros que no necesariamente sean de la misma categoría. Este tipo de asociaciones requieren de un mayor análisis a nivel médico.
+
+Se han descrito factores asociados con la rehospitalizacion relacionados con la calidad de vida de los pacientes, sin embargo en este modelo no se incluyo gran parte de este tipo de informacion, ya que, desde el principio, la población objetivo se compone de individuos asegurados en poliza de vida y salud, en su mayoria, de estrato cuatro hacia arriba. De esta forma ya no aporta información medir el nivel de calidad de vida o falicidad de acceso a los servicios de salud, pero se podria tener en cuenta información relacionada con sintomas depresivos.
+
+La calidad en el cuidado hospitalario tambien se ha considerado como un factor importante, por lo tanto se podría considerar la agregación de  información que indique que tan óptimas son las condiciones para una buena atención en los centros hospitalarios y lugares que se tuvieron en cuenta.
+
+
 
