@@ -596,7 +596,7 @@ De acuerdo al poder predictivo de cada una de las variables, se eligen aquellas 
 </ul>
 
 
-Sin embargo, tanto la ciudad como el proveedor no serán tenidos en cuenta, por que pueden llegar a condicionar nuestra variable objetivo.
+Sin embargo, tanto la ciudad, como el proveedor no serán tenidos en cuenta, por que pueden llegar a condicionar nuestra variable objetivo. Adiconalmente, lo días UCE y UCI parecen estar altamente correlacionados con la variable objetivo. por lo que tampoco serán tenidos en cuenta.
 
 Enfocandonos en el pago del diagnóstico, el cual, es una de las variables con mayor influencia, el WOE nos indica una relación no lineal, con un incremento en el WOE a medida que disminuye el rango de pago en el diagnóstico.
 
@@ -651,7 +651,7 @@ Como se pudo observar en el analisis del WOE, esta técnica ajusta los valores d
 
 El objetivo principal del análisis es estimar un modelo predictivo con el cuál se pueda estimar la probabilidad de que un paciente termine en una rehospitalización, asociada a un diangóstico anterior. Para ello se empleará un modelo de regresión logística, el cuál es ampliamente utilizado para resolver problemas de clasificación binaria.
 
-Una vez se realizan los filtros de calidad y completitud, y tras lo obtenido en los resultados del WOE, se procede a realizar la seleccion de variables para el modelo. Se tendrán en cuenta entonces, el pago realizado, los días en que estuvo el paciente de forma general, los días que permaneció en la Unidad de Cuidados -intensivos o especiales, el hecho de que se le haya realizado o no una cirugía, el género y la edad.
+Una vez se realizan los filtros de calidad y completitud, y tras lo obtenido en los resultados del WOE, se procede a realizar la seleccion de variables para el modelo. Se tendrán en cuenta entonces, el pago realizado, los días en que estuvo el paciente de forma general, el hecho de que se le haya realizado o no una cirugía, el género, la edad y el estrato.
 
 Para evaluar la capacidad de generalización del modelo, se dividirá el conjunto de datos en entrenamiento (70%) y prueba (30%).
 
@@ -661,17 +661,16 @@ data_rehosp %>%
   select(id,
         pago_hosp,
         quirur,
-        dias_uce,
-        dias_uci,
         dias_hosp,
         genero,
         edad,
+        estrato,
         rehosp_oms) -> model_rehosp
 
 model_rehosp %>%
   sample_frac(size = 0.7) -> training
 
-data_rehosp %>%
+model_rehosp %>%
   anti_join(x = .,
             y = training,
             by = "id") -> testing
