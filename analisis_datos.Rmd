@@ -796,12 +796,21 @@ plot(ROCRperf, colorize=TRUE, print.cutoffs.at=seq(0,1,by=0.1), text.adj=c(-0.2,
 ```
 
 ###Regularizado
+
+para la regularización se utilizará el paquete glmnet, el cual asigna un valor de alpha = 0 i es ridge y alpha = 1 si lasso. Antes de sumergirse en el código, vale la pena señalar lo siguiente:
+
+* glmnet no tiene una interfaz de fórmula, por lo que uno tiene que ingresar los predictores como una matriz y las etiquetas de clase como un vector.
+
+* no acepta predictores categóricos, por lo que uno tiene que convertirlos en valores numéricos antes de pasarlos a glmnet.
+
+La función glmnet model.matrix crea la matriz y también convierte los predictores categóricos en variables ficticias apropiadas; mientras que se usará la función cv.glmnet , para encontra de manera automáticauna el valor óptimo de lambda.
+
 ```{r}
 library(glmnet)
 set.seed(123) 
 
 x_train <- model.matrix(rehosp_oms~., training)[,-1]
-y_train <- ifelse(training$rehosp_oms == 1, "1","0")
+y_train <- ifelse(training$rehosp_oms == "1", 1, 0)
 
 ##Hallando el mejor lambda
 cv_train <- cv.glmnet(x_train, y_train, family = "binomial", nfolds = 10, type.measure = "class")
@@ -858,7 +867,9 @@ error_rate_train
 ```{r}
 
 x_test <- model.matrix(rehosp_oms~., testing)[,-1]
-y_test <- ifelse(testing$rehosp_oms == 1, "1", "0")
+y_test <- ifelse(testing$rehosp_oms == 1, 1, 0)
+
+
 ```
 
 ```{r}
@@ -916,7 +927,7 @@ data(churn); # carga tablas
 # ---------------------------------------------------------------------------
 ModeloArbol <- rpart(rehosp_oms ~ ., data = training, parms=list(split="information"))
 #ModeloArbol <- rpart(rehosp_oms ~ ., data = training, method = 'class')
- 
+  
 # PASO 3:  Predice rehospitalizacion en datos de TEST
 # ---------------------------------------------------------------------------
 Prediccion <- predict(ModeloArbol, testing, type="class") # Predicción en Test
