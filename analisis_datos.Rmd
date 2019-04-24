@@ -751,11 +751,11 @@ Después de estimados los coeficentes se procede a realizar la predicción dentr
 
 ```{r, message = FALSE, echo = FALSE, eval =TRUE}
 pred_train <- predict(mylogit, newdata = training[-7], type = "response")
-y_pred_train <- ifelse(pred_train > 0.5, 1, 0)
+y_pred_train <- ifelse(pred_train > 0.4, 1, 0)
 y_act_train <- training$rehosp_oms
 
 pred = predict(mylogit, type = 'response', newdata = testing[-7])
-y_pred = ifelse(pred > 0.5, 1, 0)
+y_pred = ifelse(pred > 0.4, 1, 0)
 y_act <- testing$rehosp_oms
 
 
@@ -770,7 +770,7 @@ row_spec(0,background="#EBF0F7")
 Los resultados indican un nivel de accuracy sospechosamente elevado, inluso el modelo parece ajustarse mejor con los datos nuevos, que en la parte de entrenamiento. Para ver en detalle como se comporta, al discriminar entre los casos en que el paciente sale definitivamente o termina en una rehospitalización, y evidenciar su desempeño por separado, se estimará la matriz de confusión:
 
 ```{r}
-table(as.matrix(testing[, 7]), y_pred > 0.5)
+table(as.matrix(testing[, 7]), y_pred > 0.4)
 ```
 
 Los resultados no parecen indicar que éste comportamiento se den a causa del desbalanceo. Por un lado tenemos que la sensibilidad y la especificidad corresponden al 96% y 99%. Si se habla en términos de precisión, sería de de un 99% cuando es 0, es decir de un total de 10218 pacientes que no terminaron en hospitalización pude predecir con una exactitud que el 99% no lo harían, mientras que de 249 pacientes que si tuvieron una rehospitalización pude predecir que 210 efectivamente lo harían, es decir, mi precisión fue del 84%. 
@@ -778,24 +778,6 @@ Los resultados no parecen indicar que éste comportamiento se den a causa del de
 Sin embargo, no sólo por los resultados obtenidos con el ajuste del modelo, sino también con lo que veíamos anteriormente en la tabla del valor de la información, las variables días UCI y días UCE parecen explicar de manera casi perfecta la probabilidad de que ocurre un evento rehospitalario y esto puede deberse ........ por ende se decide estimar el modelo sin incluirlas.
 
 A continuación, se obtienen los resultados:
-
-```{r}
-mylogit_2 <- glm(rehosp_oms ~ pago_hosp + quirur + dias_hosp + estrato, data = training, family = "binomial")
-summary(mylogit)
-```
- 
-```{r}
-pred_train <- predict(mylogit_2, newdata = training[-7], type = "response")
-y_pred_train <- ifelse(pred_train > 0.5, 1, 0)
-y_act_train <- training$rehosp_oms
-
-pred = predict(mylogit_2, type = 'response', newdata = testing[-7])
-y_pred = ifelse(pred > 0.5, 1, 0)
-y_act <- testing$rehosp_oms
-
-```{r}
-tapply(pred_train, training[,7], FUN = median)
-```
 
 
 ```{r, message = FALSE, echo = FALSE, eval =TRUE}
@@ -813,34 +795,20 @@ plot(ROCRperf, colorize=TRUE, print.cutoffs.at=seq(0,1,by=0.1), text.adj=c(-0.2,
 
 ```
 
-```{r}
-
-Sensibilidad = 210/218 
-Sensibilidad
-
-especificidad = 10243/10251
-especificidad
-
-Accuracy = (10243 + 210)/10469
-Accuracy
-```
-
-
 ###Regularizado
-
 ```{r}
 library(glmnet)
 set.seed(123) 
 
-x <- model.matrix(rehosp_oms~., training)[,-1]
-y <- ifelse(training$rehosp_oms == "1", 1, 0)
+x_train <- model.matrix(rehosp_oms~., training)[,-1]
+y_train <- ifelse(training$rehosp_oms == 1, "1","0")
 
 ##Hallando el mejor lambda
-cv.lasso <- cv.glmnet(x, y, alpha = 1, family = "binomial")
+cv_train <- cv.glmnet(x_train, y_train, family = "binomial", nfolds = 10, type.measure = "class")
 plot(cv.lasso)
 ```
 
-La gráfica muestra el error de validación cruzada de acuerdo con el registro de lambda. La línea vertical punteada a la izquierda indica que el registro del valor óptimo de lambda es aproximadamente -9, que es el que minimiza el error de predicción. Este valor lambda dará el modelo más preciso. El valor exacto de lambda se puede ver como sigue:
+La gráfica muestra el error de validación cruzada de acuerdo con el registro de lambda. La línea vertical punteada a la izquierda indica que el registro del valor óptimo de lambda es aproximadamente -3, que es el que minimiza el error de predicción. Este valor lambda dará el modelo más preciso. El valor exacto de lambda se puede ver como sigue:
 
 ```{r}
 cv.lasso$lambda.min
@@ -870,62 +838,39 @@ La configuración de lambda = lambda.1se produce un modelo más simple en compar
 
 ```{r}
 ##Lambda regression
-model <- glmnet(x, y, alpha = 1, family = "binomial", lambda = cv.lasso$lambda.min)
-coef(model)
-```
+std_ridge_logit <- glmnet(x_train, y_train, family="binomial", alpha=1)
+SRL_pred_train <- predict(std_ridge_logit, x_train, type="class", s=cv_train$lambda.min)
 
-
-```{r}
-# Make predictions on the test data
-x.test <- model.matrix(rehosp_oms ~., testing)[,-1]
-probabilities <- model %>% predict(newx = x.test)
-predicted.classes <- ifelse(probabilities > 0.5, "1", "0")
 ```
 
 ###Matriz training
 ```{r}
-SRL_pred_train <- predict(model, x, type="class", s=cv.lasso$lambda.min)
-confusion_matrix_train <- table(y, SRL_pred_train)
+confusion_matrix_train <- table(y_train, SRL_pred_train)
 confusion_matrix_train
 ```
 
 ```{r}
-error_rate_train <- (544+1453)/5720.0
+error_rate_train <- (760+920)/(760+920+1814+1368)
 error_rate_train
 ```
 
 ###Matriz test
 ```{r}
+
 x_test <- model.matrix(rehosp_oms~., testing)[,-1]
-y_test <- ifelse(testing$rehosp_oms == "1", 1, 0)
+y_test <- ifelse(testing$rehosp_oms == 1, "1", "0")
 ```
 
 ```{r}
-SRL_pred_test <- predict(model, x_test, type="class", s=cv.lasso$lambda.min)
+SRL_pred_test <- predict(std_ridge_logit, x_test, type="class", s=cv_train$lambda.min)
 confusion_matrix_test <- table(y_test, SRL_pred_test)
 confusion_matrix_test
 ```
 
 ```{r}
-error_rate_test <- (1605+143)/10424.0
+error_rate_test <- (84+2867)/(7344+2867+84+129)
 error_rate_test
 ```
-
-
-```{r}
-# Model accuracy
-observed.classes <- testing$rehosp_oms
-mean(predicted.classes == observed.classes)
-```
-
-```{r}
-#report mean error rate (fraction of incorrect labels)
-confusion_matrix_train <- table(as.matrix(testing[, 7]), y_pred > 0.5)
-
-confusion_matrix_train <- table(testing, predicted.classes)
-confusion_matrix_train
-```
-
 
 Calculando el modelo con lambda.1se:
 
