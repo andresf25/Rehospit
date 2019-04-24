@@ -737,7 +737,7 @@ Del resultado exploratorio anterior, al discriminar el análisis de las variable
 A continuación, al ajustar el modelo obtenemos los siguientes resultados:
 
 ```{r, message = FALSE, echo = FALSE, eval =TRUE}
-mylogit <- glm(rehosp_oms ~ pago_hosp + quirur + dias_hosp + edad + genero, data = training, family = "binomial")
+mylogit <- glm(rehosp_oms ~ pago_hosp + quirur +  dias_hosp + edad + genero + estrato, data = training, family = "binomial")
 summary(mylogit)
 ```
 
@@ -778,6 +778,7 @@ Los resultados no parecen indicar que éste comportamiento se den a causa del de
 Sin embargo, no sólo por los resultados obtenidos con el ajuste del modelo, sino también con lo que veíamos anteriormente en la tabla del valor de la información, las variables días UCI y días UCE parecen explicar de manera casi perfecta la probabilidad de que ocurre un evento rehospitalario y esto puede deberse ........ por ende se decide estimar el modelo sin incluirlas.
 
 A continuación, se obtienen los resultados:
+
 ```{r}
 mylogit_2 <- glm(rehosp_oms ~ pago_hosp + quirur + dias_hosp + estrato, data = training, family = "binomial")
 summary(mylogit)
@@ -791,19 +792,6 @@ y_act_train <- training$rehosp_oms
 pred = predict(mylogit_2, type = 'response', newdata = testing[-7])
 y_pred = ifelse(pred > 0.5, 1, 0)
 y_act <- testing$rehosp_oms
-
-
-kable(data.frame(Train = mean(y_pred_train == y_act_train), Test = mean(y_pred == y_act))) %>%
-  kable_styling(position = "center", 
-                row_label_position = 1,
-                full_width = F) %>%
-row_spec(0,background="#EBF0F7")
-```
-
-```{r}
-table(as.matrix(testing[, 7]), y_pred > 0.5)
-```
-
 
 ```{r}
 tapply(pred_train, training[,7], FUN = median)
@@ -836,6 +824,124 @@ especificidad
 Accuracy = (10243 + 210)/10469
 Accuracy
 ```
+
+
+###Regularizado
+
+```{r}
+library(glmnet)
+set.seed(123) 
+
+x <- model.matrix(rehosp_oms~., training)[,-1]
+y <- ifelse(training$rehosp_oms == "1", 1, 0)
+
+##Hallando el mejor lambda
+cv.lasso <- cv.glmnet(x, y, alpha = 1, family = "binomial")
+plot(cv.lasso)
+```
+
+La gráfica muestra el error de validación cruzada de acuerdo con el registro de lambda. La línea vertical punteada a la izquierda indica que el registro del valor óptimo de lambda es aproximadamente -9, que es el que minimiza el error de predicción. Este valor lambda dará el modelo más preciso. El valor exacto de lambda se puede ver como sigue:
+
+```{r}
+cv.lasso$lambda.min
+```
+
+En general, el propósito de la regularización es equilibrar la precisión y la simplicidad. Esto significa, un modelo con el menor número de predictores que también da una buena precisión. Para este fin, la función cv.glmnet() también encuentra el valor de lambda que proporciona el modelo más simple pero también se encuentra dentro de un error estándar del valor óptimo de lambda. Este valor se llama lambda.1se.
+
+```{r}
+cv.lasso$lambda.1se
+```
+
+```{r}
+coef(cv.lasso, cv.lasso$lambda.min)
+```
+
+Con lambda.min ningún coeficiente es igual a cero.
+
+Usando lambda.1secomo la mejor lambda, da los siguientes coeficientes de regresión:
+
+```{r}
+coef(cv.lasso, cv.lasso$lambda.1se)
+```
+
+Usando lambda.1se, solo el coeficiente de una variable se ha establecido en cero mediante el algoritmo de lazo, reduciendo la complejidad del modelo.
+
+La configuración de lambda = lambda.1se produce un modelo más simple en comparación con lambda.min, pero el modelo podría ser un poco menos preciso que el obtenido con lambda.min.
+
+```{r}
+##Lambda regression
+model <- glmnet(x, y, alpha = 1, family = "binomial", lambda = cv.lasso$lambda.min)
+coef(model)
+```
+
+
+```{r}
+# Make predictions on the test data
+x.test <- model.matrix(rehosp_oms ~., testing)[,-1]
+probabilities <- model %>% predict(newx = x.test)
+predicted.classes <- ifelse(probabilities > 0.5, "1", "0")
+```
+
+###Matriz training
+```{r}
+SRL_pred_train <- predict(model, x, type="class", s=cv.lasso$lambda.min)
+confusion_matrix_train <- table(y, SRL_pred_train)
+confusion_matrix_train
+```
+
+```{r}
+error_rate_train <- (544+1453)/5720.0
+error_rate_train
+```
+
+###Matriz test
+```{r}
+x_test <- model.matrix(rehosp_oms~., testing)[,-1]
+y_test <- ifelse(testing$rehosp_oms == "1", 1, 0)
+```
+
+```{r}
+SRL_pred_test <- predict(model, x_test, type="class", s=cv.lasso$lambda.min)
+confusion_matrix_test <- table(y_test, SRL_pred_test)
+confusion_matrix_test
+```
+
+```{r}
+error_rate_test <- (1605+143)/10424.0
+error_rate_test
+```
+
+
+```{r}
+# Model accuracy
+observed.classes <- testing$rehosp_oms
+mean(predicted.classes == observed.classes)
+```
+
+```{r}
+#report mean error rate (fraction of incorrect labels)
+confusion_matrix_train <- table(as.matrix(testing[, 7]), y_pred > 0.5)
+
+confusion_matrix_train <- table(testing, predicted.classes)
+confusion_matrix_train
+```
+
+
+Calculando el modelo con lambda.1se:
+
+```{r}
+# Final model with lambda.1se
+lasso.model <- glmnet(x, y, alpha = 1, family = "binomial",
+                      lambda = cv.lasso$lambda.1se)
+# Make prediction on test data
+x.test <- model.matrix(rehosp_oms ~., testing)[,-1]
+probabilities <- lasso.model %>% predict(newx = x.test)
+predicted.classes <- ifelse(probabilities > 0.5, "1", "0")
+# Model accuracy rate
+observed.classes <- testing$rehosp_oms
+mean(predicted.classes == observed.classes)
+```
+
 
 [Volver al Índice](#indice)</div>
 
