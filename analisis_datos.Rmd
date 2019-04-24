@@ -596,7 +596,7 @@ De acuerdo al poder predictivo de cada una de las variables, se eligen aquellas 
 </ul>
 
 
-Sin embargo, tanto la ciudad como el proveedor no serán tenidos en cuenta, por que pueden llegar a condicionar nuestra variable objetivo.
+Sin embargo, tanto la ciudad, como el proveedor no serán tenidos en cuenta, por que pueden llegar a condicionar nuestra variable objetivo. Adiconalmente, lo días UCE y UCI parecen estar altamente correlacionados con la variable objetivo. por lo que tampoco serán tenidos en cuenta.
 
 Enfocandonos en el pago del diagnóstico, el cual, es una de las variables con mayor influencia, el WOE nos indica una relación no lineal, con un incremento en el WOE a medida que disminuye el rango de pago en el diagnóstico.
 
@@ -651,7 +651,7 @@ Como se pudo observar en el analisis del WOE, esta técnica ajusta los valores d
 
 El objetivo principal del análisis es estimar un modelo predictivo con el cuál se pueda estimar la probabilidad de que un paciente termine en una rehospitalización, asociada a un diangóstico anterior. Para ello se empleará un modelo de regresión logística, el cuál es ampliamente utilizado para resolver problemas de clasificación binaria.
 
-Una vez se realizan los filtros de calidad y completitud, y tras lo obtenido en los resultados del WOE, se procede a realizar la seleccion de variables para el modelo. Se tendrán en cuenta entonces, el pago realizado, los días en que estuvo el paciente de forma general, los días que permaneció en la Unidad de Cuidados -intensivos o especiales, el hecho de que se le haya realizado o no una cirugía, el género y la edad.
+Una vez se realizan los filtros de calidad y completitud, y tras lo obtenido en los resultados del WOE, se procede a realizar la seleccion de variables para el modelo. Se tendrán en cuenta entonces, el pago realizado, los días en que estuvo el paciente de forma general, el hecho de que se le haya realizado o no una cirugía, el género, la edad y el estrato.
 
 Para evaluar la capacidad de generalización del modelo, se dividirá el conjunto de datos en entrenamiento (70%) y prueba (30%).
 
@@ -664,12 +664,13 @@ data_rehosp %>%
         dias_hosp,
         genero,
         edad,
+        estrato,
         rehosp_oms) -> model_rehosp
 
 model_rehosp %>%
   sample_frac(size = 0.7) -> training
 
-data_rehosp %>%
+model_rehosp %>%
   anti_join(x = .,
             y = training,
             by = "id") -> testing
@@ -709,7 +710,8 @@ Para ello, vamos a utilizar la técnica SMOTE (Synthetic Minority Oversampling M
 Por medio de SMOTE se generará un nuevo set de datos de entrenamiento, en el cual se tenga un 60% de informacion para la categoria negativa (rehosp_oms = 0) y 40% para la categoria positiva (rehosp_oms = 0).
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
-training <- SMOTE(rehosp_oms ~ ., as.data.frame(training), perc.over = 300, perc.under = 200)
+training <- SMOTE(rehosp_oms ~ ., as.data.frame(training), perc.over = 350, perc.under = 150)
+#training <- SMOTE(rehosp_oms ~ ., as.data.frame(training), perc.over = 300, perc.under = 200)
 ```
 
 Verificamos que el set de entrenamiento se encuentre balanceado:
@@ -777,7 +779,7 @@ Sin embargo, no sólo por los resultados obtenidos con el ajuste del modelo, sin
 
 A continuación, se obtienen los resultados:
 ```{r}
-mylogit_2 <- glm(rehosp_oms ~ pago_hosp + quirur +  dias_hosp + estrato, data = training, family = "binomial")
+mylogit_2 <- glm(rehosp_oms ~ pago_hosp + quirur + dias_hosp + estrato, data = training, family = "binomial")
 summary(mylogit)
 ```
  
@@ -819,10 +821,6 @@ perf1 <- performance(ROCRpred, "prec", "rec")
 plot(perf1)
  
 # Plot ROC curve
-plot(ROCRperf)
-# Add colors
-plot(ROCRperf, colorize=TRUE)
-# Add threshold labels 
 plot(ROCRperf, colorize=TRUE, print.cutoffs.at=seq(0,1,by=0.1), text.adj=c(-0.2,1.7))
 
 ```
@@ -868,14 +866,14 @@ data(churn); # carga tablas
 ModeloArbol <- rpart(rehosp_oms ~ ., data = training, parms=list(split="information"))
 #ModeloArbol <- rpart(rehosp_oms ~ ., data = training, method = 'class')
  
-# PASO 3:  Predice Desafiliación en datos de TEST
+# PASO 3:  Predice rehospitalizacion en datos de TEST
 # ---------------------------------------------------------------------------
-Prediccion <- predict(ModeloArbol, testing, type="class") # Prediccción en Test
+Prediccion <- predict(ModeloArbol, testing, type="class") # Predicción en Test
 MC         <- table(testing$rehosp_oms, Prediccion) # Matriz de Confusión
 
 MC
 # PASO 4: Crea Grafico
 # ---------------------------------------------------------------------------
-#rpart.plot(ModeloArbol, type=1, extra=100,cex = .7,  box.col=c("gray99", "gray88")[ModeloArbol$frame$yval])
+rpart.plot(ModeloArbol, type=1, extra=100,cex = .7,  box.col=c("gray99", "gray88")[ModeloArbol$frame$yval])
 ```
 
