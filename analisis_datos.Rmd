@@ -601,7 +601,7 @@ Sin embargo, tanto la ciudad, como el proveedor no serán tenidos en cuenta, por
 Enfocandonos en el pago del diagnóstico, el cual, es una de las variables con mayor influencia, el WOE nos indica una relación no lineal, con un incremento en el WOE a medida que disminuye el rango de pago en el diagnóstico.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
-kable_styling(kable(IV$Tables$edad), 
+kable_styling(kable(IV$Tables$pago_hosp), 
               position = "center", 
               row_label_position = 1,
               full_width = F)
@@ -618,27 +618,27 @@ MultiPlot(IV, IV$Summary$Variable[c(1,2,3,4,6,10)])
 Como se pudo observar en el analisis del WOE, esta técnica ajusta los valores de las variables numericas en rangos acotados de acuerdo al valor de la informacion de cada una de ellas en relacion con la variable dependiente. Por esto, es importante transformar dichas variables en los rangos recomendados.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
-# data_rehosp %>%
-#   mutate(pago_hosp1 = case_when( pago_hosp <= 107410 ~ "[0,107410]",
-#                            pago_hosp >= 107570 & pago_hosp <= 776965 ~ "[107570,776965]",
-#                            pago_hosp >= 777697 & pago_hosp <= 1547806 ~ "[777697,1547806]",
-#                            pago_hosp >= 1547847 & pago_hosp <= 2251764 ~ "[1547847,2251764]",
-#                            pago_hosp >= 2251913 & pago_hosp <= 3021862 ~ "[2251913,3021862]",
-#                            pago_hosp >= 3022030 & pago_hosp <= 3996928 ~ "[3022030,3996928]",
-#                            pago_hosp >= 3996933 & pago_hosp <= 5328423 ~ "[3996933,5328423]",
-#                            pago_hosp >= 5329500 & pago_hosp <= 7048290 ~ "[5329500,7048290]",
-#                            pago_hosp >= 7048902 & pago_hosp <= 11408415 ~ "[7048902,11408415]",
-#                            pago_hosp >= 11408625 & pago_hosp <= 47387883 ~ "[11408625,47387883]",
-#                            pago_hosp >= 47387883 ~ "[47387883+"),
-#          dias_hosp1 = case_when( dias_hosp = 1 ~ "[1]",
-#                                 dias_hosp = 2 ~ "[2]",
-#                                 dias_hosp = 3 ~ "[3]",
-#                                 dias_hosp = 4 ~ "[4]",
-#                                 dias_hosp >= 5 & dias_hosp <= 7 ~ "[5,7]",
-#                                 dias_hosp >= 8 & dias_hosp <= 30 ~ "[8,30]")) -> data_rehosp2
-# 
-# 
-# str(data_rehosp)
+data_rehosp %>%
+  mutate(pago_hosp1 = case_when( pago_hosp <= 107410 ~ "[0,107410]",
+                           pago_hosp >= 107570 & pago_hosp <= 776965 ~ "[107570,776965]",
+                           pago_hosp >= 777697 & pago_hosp <= 1547806 ~ "[777697,1547806]",
+                           pago_hosp >= 1547847 & pago_hosp <= 2251764 ~ "[1547847,2251764]",
+                           pago_hosp >= 2251913 & pago_hosp <= 3021862 ~ "[2251913,3021862]",
+                           pago_hosp >= 3022030 & pago_hosp <= 3996928 ~ "[3022030,3996928]",
+                           pago_hosp >= 3996933 & pago_hosp <= 5328423 ~ "[3996933,5328423]",
+                           pago_hosp >= 5329500 & pago_hosp <= 7048290 ~ "[5329500,7048290]",
+                           pago_hosp >= 7048902 & pago_hosp <= 11408415 ~ "[7048902,11408415]",
+                           pago_hosp >= 11408625 & pago_hosp <= 47387883 ~ "[11408625,47387883]",
+                           pago_hosp >= 47387883 ~ "[47387883+"),
+         dias_hosp1 = case_when( dias_hosp = 1 ~ "[1]",
+                                dias_hosp = 2 ~ "[2]",
+                                dias_hosp = 3 ~ "[3]",
+                                dias_hosp = 4 ~ "[4]",
+                                dias_hosp >= 5 & dias_hosp <= 7 ~ "[5,7]",
+                                dias_hosp >= 8 & dias_hosp <= 30 ~ "[8,30]")) -> data_rehosp2
+
+
+str(data_rehosp)
 
 ```
 
@@ -751,11 +751,11 @@ Después de estimados los coeficentes se procede a realizar la predicción dentr
 
 ```{r, message = FALSE, echo = FALSE, eval =TRUE}
 pred_train <- predict(mylogit, newdata = training[-7], type = "response")
-y_pred_train <- ifelse(pred_train > 0.4, 1, 0)
+y_pred_train <- ifelse(pred_train > 0.5, 1, 0)
 y_act_train <- training$rehosp_oms
 
 pred = predict(mylogit, type = 'response', newdata = testing[-7])
-y_pred = ifelse(pred > 0.4, 1, 0)
+y_pred = ifelse(pred > 0.5, 1, 0)
 y_act <- testing$rehosp_oms
 
 
@@ -770,7 +770,7 @@ row_spec(0,background="#EBF0F7")
 Los resultados indican un nivel de accuracy sospechosamente elevado, inluso el modelo parece ajustarse mejor con los datos nuevos, que en la parte de entrenamiento. Para ver en detalle como se comporta, al discriminar entre los casos en que el paciente sale definitivamente o termina en una rehospitalización, y evidenciar su desempeño por separado, se estimará la matriz de confusión:
 
 ```{r}
-table(as.matrix(testing[, 7]), y_pred > 0.4)
+table(as.matrix(testing[, 7]), y_pred > 0.5)
 ```
 
 Los resultados no parecen indicar que éste comportamiento se den a causa del desbalanceo. Por un lado tenemos que la sensibilidad y la especificidad corresponden al 96% y 99%. Si se habla en términos de precisión, sería de de un 99% cuando es 0, es decir de un total de 10218 pacientes que no terminaron en hospitalización pude predecir con una exactitud que el 99% no lo harían, mientras que de 249 pacientes que si tuvieron una rehospitalización pude predecir que 210 efectivamente lo harían, es decir, mi precisión fue del 84%. 
@@ -915,8 +915,7 @@ data(churn); # carga tablas
 # PASO 2:   Crea Arbol de Decision
 # ---------------------------------------------------------------------------
 ModeloArbol <- rpart(rehosp_oms ~ ., data = training, parms=list(split="information"))
-#ModeloArbol <- rpart(rehosp_oms ~ ., data = training, method = 'class')
- 
+
 # PASO 3:  Predice rehospitalizacion en datos de TEST
 # ---------------------------------------------------------------------------
 Prediccion <- predict(ModeloArbol, testing, type="class") # Predicción en Test
@@ -928,3 +927,64 @@ MC
 rpart.plot(ModeloArbol, type=1, extra=100,cex = .7,  box.col=c("gray99", "gray88")[ModeloArbol$frame$yval])
 ```
 
+
+```{r}
+library(e1071)
+
+# Ejecución del modelo SVM
+modelosvm <- svm(rehosp_oms ~ ., data = training)
+
+# Predicción de los restantes
+prediccionsvm <- predict(modelosvm, new = testing)
+
+# Tabla de confusión.
+# Se usa with para que aparezca el nombre de la variable Species en ella
+# ya que en caso contrario no sale.
+(mc <- with(testing,(table(prediccionsvm, rehosp_oms))))
+
+
+# % correctamente clasificados
+(correctos <- sum(diag(mc)) / nrow(testing) *100)
+
+
+```
+
+
+```{r}
+library(ipred)
+
+# Ejecución del modelo de Bagging
+modelobag <- bagging(rehosp_oms~., data=training)
+
+# Resumen del ajuste del modelo
+#modelo
+## 
+## Bagging classification trees with 25 bootstrap replications 
+## 
+## Call: bagging.data.frame(formula = Species ~ ., data = datos.entreno)
+# Hacer predicciones
+prediccionbag <- predict(modelobag, testing)
+
+# Matriz de confusión
+(mc <- with(testing,table(prediccionbag, rehosp_oms)))
+
+
+```
+
+
+```{r}
+# Carga el paquete específico del método Random Forest
+library(randomForest)
+
+# Ajustar modelo
+modeloRForest <- randomForest(rehosp_oms~., data=training)
+
+# Resumen del ajuste del modelo
+#modelo
+
+prediccionRForest <- predict(modeloRForest, testing)
+
+# Matriz de confusión
+(mc <- with(testing, table(prediccionRForest, rehosp_oms)))
+
+```
