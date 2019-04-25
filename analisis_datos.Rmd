@@ -359,7 +359,7 @@ str(data_rehosp)
 <h3 id="AnalisisCon" style="text-align: center;"markdown="1">Análisis univariado - variables continuas</h3>
 <div style="text-align: justify">
 
-Es evidente la existencia también, de valores atípicos muy marcados tanto en el numéro de días de hospitalización, como en los números de días que el paciente estuvo en la Unidad de Cuidado Intensivo y Especial, en dónde los valores atípicos más grandes suceden en los eventos que no desencadenaron en rehospitalización.
+Es evidente la existencia también, de valores atípicos muy marcados tanto en el numéro de días de hospitalización, como en los números de días que el paciente estuvo en la Unidad de Cuidado Intensivos y Especiales, en dónde los valores atípicos más grandes suceden en los eventos que no desencadenaron en rehospitalización.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
 
