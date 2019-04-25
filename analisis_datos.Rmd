@@ -618,27 +618,30 @@ MultiPlot(IV, IV$Summary$Variable[c(1,2,3,4,6,10)])
 Como se pudo observar en el analisis del WOE, esta técnica ajusta los valores de las variables numericas en rangos acotados de acuerdo al valor de la informacion de cada una de ellas en relacion con la variable dependiente. Por esto, es importante transformar dichas variables en los rangos recomendados.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
-# data_rehosp %>%
-#   mutate(pago_hosp1 = case_when( pago_hosp <= 107410 ~ "[0,107410]",
-#                            pago_hosp >= 107570 & pago_hosp <= 776965 ~ "[107570,776965]",
-#                            pago_hosp >= 777697 & pago_hosp <= 1547806 ~ "[777697,1547806]",
-#                            pago_hosp >= 1547847 & pago_hosp <= 2251764 ~ "[1547847,2251764]",
-#                            pago_hosp >= 2251913 & pago_hosp <= 3021862 ~ "[2251913,3021862]",
-#                            pago_hosp >= 3022030 & pago_hosp <= 3996928 ~ "[3022030,3996928]",
-#                            pago_hosp >= 3996933 & pago_hosp <= 5328423 ~ "[3996933,5328423]",
-#                            pago_hosp >= 5329500 & pago_hosp <= 7048290 ~ "[5329500,7048290]",
-#                            pago_hosp >= 7048902 & pago_hosp <= 11408415 ~ "[7048902,11408415]",
-#                            pago_hosp >= 11408625 & pago_hosp <= 47387883 ~ "[11408625,47387883]",
-#                            pago_hosp >= 47387883 ~ "[47387883+"),
-#          dias_hosp1 = case_when( dias_hosp = 1 ~ "[1]",
-#                                 dias_hosp = 2 ~ "[2]",
-#                                 dias_hosp = 3 ~ "[3]",
-#                                 dias_hosp = 4 ~ "[4]",
-#                                 dias_hosp >= 5 & dias_hosp <= 7 ~ "[5,7]",
-#                                 dias_hosp >= 8 & dias_hosp <= 30 ~ "[8,30]")) -> data_rehosp2
-# 
-# 
-# str(data_rehosp)
+ data_rehosp %>%
+   mutate(pago_hosp = case_when( .$pago_hosp <= 107820 ~ "[0,107820]",
+                            .$pago_hosp >= 108200 & .$pago_hosp <= 759828 ~ "[108200,759828]",
+                            .$pago_hosp >= 760095 & .$pago_hosp <= 1531408 ~ "[760095,1531408]",
+                            .$pago_hosp >= 1531618 & .$pago_hosp <= 2131592 ~ "[1531618,2131592]",
+                            .$pago_hosp >= 2132115 & .$pago_hosp <= 2895004 ~ "[2132115,2895004]",
+                            .$pago_hosp >= 2895005 & .$pago_hosp <= 3870803 ~ "[2895083,3870803]",
+                            .$pago_hosp >= 3870853 & .$pago_hosp <= 4944123 ~ "[3870853,4944123]",
+                            .$pago_hosp >= 4944124 & .$pago_hosp <= 6652726 ~ "[4944436,6652726]",
+                            .$pago_hosp >= 6653181 & .$pago_hosp <= 10266934 ~ "[6653181,10266934]",
+                            .$pago_hosp >= 10272268 & .$pago_hosp <= 35514751 ~ "[10272268,35514751]"),
+          dias_hosp = case_when( .$dias_hosp == 1 ~ "[1]",
+                                 .$dias_hosp == 2 ~ "[2]",
+                                 .$dias_hosp == 3 ~ "[3]",
+                                 .$dias_hosp == 4 ~ "[4]",
+                                 .$dias_hosp >= 5 & .$dias_hosp <= 7 ~ "[5,7]",
+                                 .$dias_hosp >= 8 & .$dias_hosp <= 30 ~ "[8,30]"),
+          pago_hosp = as.factor(pago_hosp),
+          dias_hosp = as.factor(dias_hosp)) -> data_rehosp
+ 
+ 
+ str(data_rehosp)
+ 
+ filter(data_rehosp, pago_hosp > 35482811)
 
 ```
 
@@ -738,7 +741,7 @@ A continuación, al ajustar el modelo obtenemos los siguientes resultados:
 
 ```{r, message = FALSE, echo = FALSE, eval =TRUE}
 rm(list=ls()[!ls() %in% c("training", "testing")])
-mylogit <- glm(rehosp_oms ~ pago_hosp + quirur +  dias_hosp + edad + genero + estrato, data = training, family = "binomial")
+mylogit <- glm(rehosp_oms ~ pago_hosp + quirur + dias_hosp + edad + genero + estrato, data = training, family = "binomial")
 summary(mylogit)
 ```
 
@@ -759,6 +762,8 @@ pred = predict(mylogit, type = 'response', newdata = testing[-7])
 y_pred = ifelse(pred > 0.5, 1, 0)
 y_act <- testing$rehosp_oms
 
+str(training)
+
 
 kable(data.frame(Train = mean(y_pred_train == y_act_train), Test = mean(y_pred == y_act))) %>%
   kable_styling(position = "center", 
@@ -768,7 +773,7 @@ row_spec(0,background="#EBF0F7")
   
 ```
 
-Los resultados indican un nivel de accuracy sospechosamente elevado, inluso el modelo parece ajustarse mejor con los datos nuevos, que en la parte de entrenamiento. Para ver en detalle como se comporta, al discriminar entre los casos en que el paciente sale definitivamente o termina en una rehospitalización, y evidenciar su desempeño por separado, se estimará la matriz de confusión:
+Los resultados indican un nivel de accuracy sospechosamente elevado, incluso el modelo parece ajustarse mejor con los datos nuevos, que en la parte de entrenamiento. Para ver en detalle como se comporta, al discriminar entre los casos en que el paciente sale definitivamente o termina en una rehospitalización, y evidenciar su desempeño por separado, se estimará la matriz de confusión:
 
 ```{r}
 table(as.matrix(testing[, 7]), y_pred > 0.5)
