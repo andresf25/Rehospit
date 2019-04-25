@@ -618,30 +618,31 @@ MultiPlot(IV, IV$Summary$Variable[c(1,2,3,4,6,10)])
 Como se pudo observar en el analisis del WOE, esta técnica ajusta los valores de las variables numericas en rangos acotados de acuerdo al valor de la informacion de cada una de ellas en relacion con la variable dependiente. Por esto, es importante transformar dichas variables en los rangos recomendados.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
- data_rehosp %>%
-   mutate(pago_hosp = case_when( .$pago_hosp <= 107820 ~ "[0,107820]",
-                            .$pago_hosp >= 108200 & .$pago_hosp <= 759828 ~ "[108200,759828]",
-                            .$pago_hosp >= 760095 & .$pago_hosp <= 1531408 ~ "[760095,1531408]",
-                            .$pago_hosp >= 1531618 & .$pago_hosp <= 2131592 ~ "[1531618,2131592]",
-                            .$pago_hosp >= 2132115 & .$pago_hosp <= 2895004 ~ "[2132115,2895004]",
-                            .$pago_hosp >= 2895005 & .$pago_hosp <= 3870803 ~ "[2895083,3870803]",
-                            .$pago_hosp >= 3870853 & .$pago_hosp <= 4944123 ~ "[3870853,4944123]",
-                            .$pago_hosp >= 4944124 & .$pago_hosp <= 6652726 ~ "[4944436,6652726]",
-                            .$pago_hosp >= 6653181 & .$pago_hosp <= 10266934 ~ "[6653181,10266934]",
-                            .$pago_hosp >= 10272268 & .$pago_hosp <= 35514751 ~ "[10272268,35514751]"),
-          dias_hosp = case_when( .$dias_hosp == 1 ~ "[1]",
-                                 .$dias_hosp == 2 ~ "[2]",
-                                 .$dias_hosp == 3 ~ "[3]",
-                                 .$dias_hosp == 4 ~ "[4]",
-                                 .$dias_hosp >= 5 & .$dias_hosp <= 7 ~ "[5,7]",
-                                 .$dias_hosp >= 8 & .$dias_hosp <= 30 ~ "[8,30]"),
-          pago_hosp = as.factor(pago_hosp),
-          dias_hosp = as.factor(dias_hosp)) -> data_rehosp
+ # data_rehosp %>%
+ #   mutate(pago_hosp = case_when( .$pago_hosp <= 107820 ~ "[0,107820]",
+ #                            .$pago_hosp >= 108200 & .$pago_hosp <= 759828 ~ "[108200,759828]",
+ #                            .$pago_hosp >= 760095 & .$pago_hosp <= 1531408 ~ "[760095,1531408]",
+ #                            .$pago_hosp >= 1531618 & .$pago_hosp <= 2131592 ~ "[1531618,2131592]",
+ #                            .$pago_hosp >= 2132115 & .$pago_hosp <= 2895004 ~ "[2132115,2895004]",
+ #                            .$pago_hosp >= 2895005 & .$pago_hosp <= 3870803 ~ "[2895083,3870803]",
+ #                            .$pago_hosp >= 3870853 & .$pago_hosp <= 4944123 ~ "[3870853,4944123]",
+ #                            .$pago_hosp >= 4944124 & .$pago_hosp <= 6652726 ~ "[4944436,6652726]",
+ #                            .$pago_hosp >= 6653181 & .$pago_hosp <= 10266934 ~ "[6653181,10266934]",
+ #                            .$pago_hosp >= 10272268 & .$pago_hosp <= 35514751 ~ "[10272268,35514751]"),
+ #          dias_hosp = case_when( .$dias_hosp == 1 ~ "[1]",
+ #                                 .$dias_hosp == 2 ~ "[2]",
+ #                                 .$dias_hosp == 3 ~ "[3]",
+ #                                 .$dias_hosp == 4 ~ "[4]",
+ #                                 .$dias_hosp >= 5 & .$dias_hosp <= 7 ~ "[5,7]",
+ #                                 .$dias_hosp >= 8 & .$dias_hosp <= 30 ~ "[8,30]"),
+ #          pago_hosp = as.factor(pago_hosp),
+ #          dias_hosp = as.factor(dias_hosp)) -> data_rehosp
+ # 
+ # str(data_rehosp)
  
  
- str(data_rehosp)
- 
- filter(data_rehosp, pago_hosp > 35482811)
+data_rehosp <- data_rehosp %>% mutate_each_(funs(scale(.) %>% as.vector), 
+          vars=c("pago_hosp","dias_hosp")) 
 
 ```
 
@@ -740,7 +741,7 @@ Del resultado exploratorio anterior, al discriminar el análisis de las variable
 A continuación, al ajustar el modelo obtenemos los siguientes resultados:
 
 ```{r, message = FALSE, echo = FALSE, eval =TRUE}
-rm(list=ls()[!ls() %in% c("training", "testing")])
+rm(list=ls()[!ls() %in% c("training", "testing", "data_rehosp")])
 mylogit <- glm(rehosp_oms ~ pago_hosp + quirur + dias_hosp + edad + genero + estrato, data = training, family = "binomial")
 summary(mylogit)
 ```
