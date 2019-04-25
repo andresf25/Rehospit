@@ -618,27 +618,27 @@ MultiPlot(IV, IV$Summary$Variable[c(1,2,3,4,6,10)])
 Como se pudo observar en el analisis del WOE, esta técnica ajusta los valores de las variables numericas en rangos acotados de acuerdo al valor de la informacion de cada una de ellas en relacion con la variable dependiente. Por esto, es importante transformar dichas variables en los rangos recomendados.
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
-data_rehosp %>%
-  mutate(pago_hosp1 = case_when( pago_hosp <= 107410 ~ "[0,107410]",
-                           pago_hosp >= 107570 & pago_hosp <= 776965 ~ "[107570,776965]",
-                           pago_hosp >= 777697 & pago_hosp <= 1547806 ~ "[777697,1547806]",
-                           pago_hosp >= 1547847 & pago_hosp <= 2251764 ~ "[1547847,2251764]",
-                           pago_hosp >= 2251913 & pago_hosp <= 3021862 ~ "[2251913,3021862]",
-                           pago_hosp >= 3022030 & pago_hosp <= 3996928 ~ "[3022030,3996928]",
-                           pago_hosp >= 3996933 & pago_hosp <= 5328423 ~ "[3996933,5328423]",
-                           pago_hosp >= 5329500 & pago_hosp <= 7048290 ~ "[5329500,7048290]",
-                           pago_hosp >= 7048902 & pago_hosp <= 11408415 ~ "[7048902,11408415]",
-                           pago_hosp >= 11408625 & pago_hosp <= 47387883 ~ "[11408625,47387883]",
-                           pago_hosp >= 47387883 ~ "[47387883+"),
-         dias_hosp1 = case_when( dias_hosp = 1 ~ "[1]",
-                                dias_hosp = 2 ~ "[2]",
-                                dias_hosp = 3 ~ "[3]",
-                                dias_hosp = 4 ~ "[4]",
-                                dias_hosp >= 5 & dias_hosp <= 7 ~ "[5,7]",
-                                dias_hosp >= 8 & dias_hosp <= 30 ~ "[8,30]")) -> data_rehosp2
-
-
-str(data_rehosp)
+# data_rehosp %>%
+#   mutate(pago_hosp1 = case_when( pago_hosp <= 107410 ~ "[0,107410]",
+#                            pago_hosp >= 107570 & pago_hosp <= 776965 ~ "[107570,776965]",
+#                            pago_hosp >= 777697 & pago_hosp <= 1547806 ~ "[777697,1547806]",
+#                            pago_hosp >= 1547847 & pago_hosp <= 2251764 ~ "[1547847,2251764]",
+#                            pago_hosp >= 2251913 & pago_hosp <= 3021862 ~ "[2251913,3021862]",
+#                            pago_hosp >= 3022030 & pago_hosp <= 3996928 ~ "[3022030,3996928]",
+#                            pago_hosp >= 3996933 & pago_hosp <= 5328423 ~ "[3996933,5328423]",
+#                            pago_hosp >= 5329500 & pago_hosp <= 7048290 ~ "[5329500,7048290]",
+#                            pago_hosp >= 7048902 & pago_hosp <= 11408415 ~ "[7048902,11408415]",
+#                            pago_hosp >= 11408625 & pago_hosp <= 47387883 ~ "[11408625,47387883]",
+#                            pago_hosp >= 47387883 ~ "[47387883+"),
+#          dias_hosp1 = case_when( dias_hosp = 1 ~ "[1]",
+#                                 dias_hosp = 2 ~ "[2]",
+#                                 dias_hosp = 3 ~ "[3]",
+#                                 dias_hosp = 4 ~ "[4]",
+#                                 dias_hosp >= 5 & dias_hosp <= 7 ~ "[5,7]",
+#                                 dias_hosp >= 8 & dias_hosp <= 30 ~ "[8,30]")) -> data_rehosp2
+# 
+# 
+# str(data_rehosp)
 
 ```
 
@@ -737,6 +737,7 @@ Del resultado exploratorio anterior, al discriminar el análisis de las variable
 A continuación, al ajustar el modelo obtenemos los siguientes resultados:
 
 ```{r, message = FALSE, echo = FALSE, eval =TRUE}
+rm(list=ls()[!ls() %in% c("training", "testing")])
 mylogit <- glm(rehosp_oms ~ pago_hosp + quirur +  dias_hosp + edad + genero + estrato, data = training, family = "binomial")
 summary(mylogit)
 ```
@@ -807,23 +808,25 @@ La función glmnet model.matrix crea la matriz y también convierte los predicto
 
 ```{r}
 library(glmnet)
+library(Matrix)
 set.seed(123) 
 
 x_train <- model.matrix(rehosp_oms~., training)[,-1]
 y_train <- ifelse(training$rehosp_oms == "1", 1, 0)
 
 ##Hallando el mejor lambda
-cv_train <- cv.glmnet(x_train, y_train, family = "binomial", nfolds = 10, type.measure = "class")
+cv.lasso <- cv.glmnet(x_train, y_train, family = "binomial", type.measure = "mse", alpha = 1)
 plot(cv.lasso)
 ```
 
-La gráfica muestra el error de validación cruzada de acuerdo con el registro de lambda. La línea vertical punteada a la izquierda indica que el registro del valor óptimo de lambda es aproximadamente -3, que es el que minimiza el error de predicción. Este valor lambda dará el modelo más preciso. El valor exacto de lambda se puede ver como sigue:
+La gráfica muestra que el registro del valor óptimo de lambda (es decir, el que minimiza el error cuadrático medio) es aproximadamente -3. El valor exacto se puede ver al examinar la variable lambda_min en el código a continuación. En general, sin embargo, el objetivo de la regularización es equilibrar la precisión y la simplicidad. En el contexto actual, esto significa un modelo con el menor número de coeficientes que también proporciona una buena precisión . 
 
 ```{r}
 cv.lasso$lambda.min
 ```
 
-En general, el propósito de la regularización es equilibrar la precisión y la simplicidad. Esto significa, un modelo con el menor número de predictores que también da una buena precisión. Para este fin, la función cv.glmnet() también encuentra el valor de lambda que proporciona el modelo más simple pero también se encuentra dentro de un error estándar del valor óptimo de lambda. Este valor se llama lambda.1se.
+En general, el propósito de la regularización es equilibrar la precisión y la simplicidad. Esto significa, un modelo con el menor número de predictores que también da una buena precisión. Para este fin, la función cv.glmnet() también encuentra el valor de lambda que proporciona el modelo más simple pero también se encuentra dentro de un error estándar del valor óptimo de lambda. Este valor se llama lambda.1se. Este valor de lambda ( lambda.1se) es lo que usaremos en el resto de la computación.
+
 
 ```{r}
 cv.lasso$lambda.1se
@@ -833,7 +836,7 @@ cv.lasso$lambda.1se
 coef(cv.lasso, cv.lasso$lambda.min)
 ```
 
-Con lambda.min ningún coeficiente es igual a cero.
+La salida muestra que solo aquellas variables que hemos determinado que son significativas en base a los valores de p tienen coeficientes distintos de cero, en este caso el pago hospitalario, todos los coeficientes de las demás variables han sido puestos a cero por el algoritmo.
 
 Usando lambda.1secomo la mejor lambda, da los siguientes coeficientes de regresión:
 
@@ -841,14 +844,14 @@ Usando lambda.1secomo la mejor lambda, da los siguientes coeficientes de regresi
 coef(cv.lasso, cv.lasso$lambda.1se)
 ```
 
-Usando lambda.1se, solo el coeficiente de una variable se ha establecido en cero mediante el algoritmo de lazo, reduciendo la complejidad del modelo.
+Usando lambda.1se, los coeficiente de 4 variables se han establecido en cero mediante el algoritmo de lazo, reduciendo la complejidad del modelo.
 
 La configuración de lambda = lambda.1se produce un modelo más simple en comparación con lambda.min, pero el modelo podría ser un poco menos preciso que el obtenido con lambda.min.
 
 ```{r}
 ##Lambda regression
 std_ridge_logit <- glmnet(x_train, y_train, family="binomial", alpha=1)
-SRL_pred_train <- predict(std_ridge_logit, x_train, type="class", s=cv_train$lambda.min)
+SRL_pred_train <- predict(std_ridge_logit, x_train, type="class", s=cv.lasso$lambda.1se)
 
 ```
 
@@ -873,7 +876,7 @@ y_test <- ifelse(testing$rehosp_oms == 1, 1, 0)
 ```
 
 ```{r}
-SRL_pred_test <- predict(std_ridge_logit, x_test, type="class", s=cv_train$lambda.min)
+SRL_pred_test <- predict(std_ridge_logit, x_test, type="class", s=cv.lasso$lambda.1se)
 confusion_matrix_test <- table(y_test, SRL_pred_test)
 confusion_matrix_test
 ```
@@ -883,19 +886,17 @@ error_rate_test <- (84+2867)/(7344+2867+84+129)
 error_rate_test
 ```
 
-Calculando el modelo con lambda.1se:
+Calculando el modelo con ridge:
+```{r}
+##Hallando el mejor lambda
+cv.ridge <- cv.glmnet(x_train, y_train, family = "binomial", type.measure = "mse", alpha = 0)
+coef(cv.ridge, cv.ridge$lambda.1se)
+```
 
 ```{r}
-# Final model with lambda.1se
-lasso.model <- glmnet(x, y, alpha = 1, family = "binomial",
-                      lambda = cv.lasso$lambda.1se)
-# Make prediction on test data
-x.test <- model.matrix(rehosp_oms ~., testing)[,-1]
-probabilities <- lasso.model %>% predict(newx = x.test)
-predicted.classes <- ifelse(probabilities > 0.5, "1", "0")
-# Model accuracy rate
-observed.classes <- testing$rehosp_oms
-mean(predicted.classes == observed.classes)
+SRR_pred_test <- predict(std_ridge_logit, x_test, type="class", s=cv.ridge$lambda.1se)
+confusion_matrix_test <- table(y_test, SRR_pred_test)
+confusion_matrix_test
 ```
 
 
