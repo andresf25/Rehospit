@@ -702,6 +702,11 @@ training <- SMOTE(rehosp_oms ~ ., as.data.frame(training), perc.over = 350, perc
 #training <- SMOTE(rehosp_oms ~ ., as.data.frame(training), perc.over = 300, perc.under = 200)
 ```
 
+```{r}
+str(training)
+```
+
+
 Verificamos que el set de entrenamiento se encuentre balanceado:
 
 ```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE}
@@ -903,87 +908,3 @@ Se han descrito factores asociados con la rehospitalizacion relacionados con la 
 
 La calidad en el cuidado hospitalario tambien se ha considerado como un factor importante, por lo tanto se podría considerar la agregación de  información que indique que tan óptimas son las condiciones para una buena atención en los centros hospitalarios y lugares que se tuvieron en cuenta.</div>
 
-```{r}
-# PASO 1:   Carga Package y Set de datos
-# ---------------------------------------------------------------------------
-library(C50)
-library(rpart)
-library(rpart.plot) 
-data(churn); # carga tablas
-
-# PASO 2:   Crea Arbol de Decision
-# ---------------------------------------------------------------------------
-ModeloArbol <- rpart(rehosp_oms ~ ., data = training, parms=list(split="information"))
-
-# PASO 3:  Predice rehospitalizacion en datos de TEST
-# ---------------------------------------------------------------------------
-Prediccion <- predict(ModeloArbol, testing, type="class") # Predicción en Test
-MC         <- table(testing$rehosp_oms, Prediccion) # Matriz de Confusión
-
-MC
-# PASO 4: Crea Grafico
-# ---------------------------------------------------------------------------
-rpart.plot(ModeloArbol, type=1, extra=100,cex = .7,  box.col=c("gray99", "gray88")[ModeloArbol$frame$yval])
-```
-
-
-```{r}
-library(e1071)
-
-# Ejecución del modelo SVM
-modelosvm <- svm(rehosp_oms ~ ., data = training)
-
-# Predicción de los restantes
-prediccionsvm <- predict(modelosvm, new = testing)
-
-# Tabla de confusión.
-# Se usa with para que aparezca el nombre de la variable Species en ella
-# ya que en caso contrario no sale.
-(mc <- with(testing,(table(prediccionsvm, rehosp_oms))))
-
-
-# % correctamente clasificados
-(correctos <- sum(diag(mc)) / nrow(testing) *100)
-
-
-```
-
-
-```{r}
-library(ipred)
-
-# Ejecución del modelo de Bagging
-modelobag <- bagging(rehosp_oms~., data=training)
-
-# Resumen del ajuste del modelo
-#modelo
-## 
-## Bagging classification trees with 25 bootstrap replications 
-## 
-## Call: bagging.data.frame(formula = Species ~ ., data = datos.entreno)
-# Hacer predicciones
-prediccionbag <- predict(modelobag, testing)
-
-# Matriz de confusión
-(mc <- with(testing,table(prediccionbag, rehosp_oms)))
-
-
-```
-
-
-```{r}
-# Carga el paquete específico del método Random Forest
-library(randomForest)
-
-# Ajustar modelo
-modeloRForest <- randomForest(rehosp_oms~., data=training)
-
-# Resumen del ajuste del modelo
-#modelo
-
-prediccionRForest <- predict(modeloRForest, testing)
-
-# Matriz de confusión
-(mc <- with(testing, table(prediccionRForest, rehosp_oms)))
-
-```
