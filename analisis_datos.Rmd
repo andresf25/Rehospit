@@ -192,7 +192,7 @@ data_rehosp %>%
 <br>
 
 A continuacion veremos algunas graficas que permiten realizar inferencias acerca del comportamiento de los datos:
-```{r}
+```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE, fig.width=8, fig.height=4}
 require(scales)
 
 data_rehosp %>%
@@ -219,7 +219,7 @@ p11 <- ggplotly(p11)
 p11
 ```
 
-```{r}
+```{r, message = FALSE, warning = FALSE, echo = FALSE, eval =TRUE, fig.width=8, fig.height=4}
 data_rehosp %>%
   group_by(ciudad) %>%
   summarise_all(~sum(rehosp_oms)) %>%
@@ -270,12 +270,11 @@ p13
 [Volver al Índice](#indice)</div>
 
 <hr>
-<h2 id="Perdidos" style="text-align: center;" markdown="1">Generalidades</h2>
-<div style="text-align: justify">
+<h2 id="Perdidos" style="text-align: center;" markdown="1">Análisis de Registros Pérdidos</h2>
 
 En la gráfica siguiente podemos observar que hay en total 4 variables que contienen registros vacios: estrato, estado civil, ingreso y proveedor.
 
-A nivel individual el porcentaje de valores perdidos para todos los casos es superior al 25%. De forma combinada hay más del 30% de campos vacíos; por ende no podemos decir que la probabilidad de que falte un valor depende solo del valor observado, y usar un método para imputarlo (la forma no es aleatoria).</div>
+A nivel individual el porcentaje de valores perdidos para todos los casos es superior al 25%. De forma combinada hay más del 30% de campos vacíos; por ende no podemos decir que la probabilidad de que falte un valor depende solo del valor observado, y usar un método para imputarlo (la forma no es aleatoria).
 
 ```{r, message = FALSE, warning = FALSE, eval =TRUE, echo = FALSE}
 aggr(data_rehosp,
@@ -667,8 +666,7 @@ training %>%
   select(-id) %>%
   mutate(rehosp_oms = as.factor(rehosp_oms)) -> training
 
-training <- training %>% mutate_each_(funs(scale(.) %>% as.vector), 
-          vars=c("pago_hosp","dias_hosp")) 
+#training <- training %>% mutate_each_(funs(scale(.) %>% as.vector),           vars=c("pago_hosp","dias_hosp")) 
 
 ```
 
@@ -761,11 +759,7 @@ Los resultados indican un nivel de accuracy de 62% en los datos de entrenamiento
 table(as.matrix(testing[, 7]), y_pred > 0.5)
 ```
 
-Los resultados no parecen indicar que éste comportamiento se den a causa del desbalanceo. Por un lado tenemos que la sensibilidad y la especificidad corresponden al 96% y 99%. Si se habla en términos de precisión, sería de de un 99% cuando es 0, es decir de un total de 10218 pacientes que no terminaron en hospitalización pude predecir con una exactitud que el 99% no lo harían, mientras que de 249 pacientes que si tuvieron una rehospitalización pude predecir que 210 efectivamente lo harían, es decir, mi precisión fue del 84%. 
-
-Sin embargo, no sólo por los resultados obtenidos con el ajuste del modelo, sino también con lo que veíamos anteriormente en la tabla del valor de la información, las variables días UCI y días UCE parecen explicar de manera casi perfecta la probabilidad de que ocurre un evento rehospitalario y esto puede deberse ........ por ende se decide estimar el modelo sin incluirlas.
-
-A continuación, se obtienen los resultados:
+Resultados Curva de ROC:
 
 
 ```{r, message = FALSE, echo = FALSE, eval =TRUE}
