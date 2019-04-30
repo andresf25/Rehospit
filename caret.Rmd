@@ -28,14 +28,6 @@ data_rehosp %>%
 
 ```
 
-Conviertiendo todas las variables categóricas en números:
-
-```{r, message = FALSE, echo = FALSE, eval =TRUE, warning=FALSE}
-# dmy <- dummyVars(" ~ .", data = model_rehosp, fullRank = T)
-# rehosp_transform <- data.frame(predict(dmy, newdata = model_rehosp))
-# rehosp_transform$rehosp_oms<-as.factor(rehosp_transform$rehosp_oms)
-```
-
 Dividiendo la información en validación (70) y prueba (30)
 
 ```{r, message = FALSE, echo = FALSE, eval =TRUE, warning=FALSE}
@@ -45,12 +37,7 @@ train <- model_rehosp[ index,]
 test <- model_rehosp[-index,]
 ```
 
-```{r, message = FALSE, echo = FALSE, eval =TRUE, warning=FALSE}
-str(trainTransformed)
-```
-
-
-Después de dividirse la data en entrenamiento y teniendo en cuenta que hay columnas numéricas con unidades de valor muy extremos, se procede a escalar las variables
+Después de dividirse la data en entrenamiento y teniendo en cuenta que hay columnas numéricas con unidades de valor muy extremos, se procede a escalar las variables.
 
 ```{r, message = FALSE, echo = FALSE, eval =TRUE, warning=FALSE}
 preProcValues <- preProcess(train, method = c("center", "scale"))
@@ -88,22 +75,22 @@ orig_fit <- train(rehosp_oms ~ .,
 El AUC se utilizará para evaluar el clasificador para evitar tener que tomar decisiones sobre el umbral de clasificación.
 
 ```{r, message = FALSE, echo = FALSE, eval =TRUE, warning=FALSE}
-test_roc <- function(model, data) {
-  
-  roc(data$rehosp_oms,
-      predict(model, data, type = "prob")[, "si"])
-
-}
 
 orig_fit %>%
-  test_roc(data = testTransformed) %>%
+  test_roc(data = testTransformed, 
+           variable = "rehosp_oms", 
+           positive_class = "si") %>%
   auc()
 ```
 
-Ahora utilizando métodos de muestreo (SMOTE)
+Ahora utilizando métodos de muestreo (SMOTE), compararémos el resultado anterior con el Gradient Boosting balanceado, un Árbol de Decisión, un Random Forest y una Máquina de Soporte Vectorial Radial, los cuales utilizan un límite de decisión no lineal.
 
 ```{r, message = FALSE, echo = FALSE, eval =TRUE, warning=FALSE}
+
+set.seed(5627)
+
 ctrl$sampling <- "smote"
+
 
 smote_fit <- train(rehosp_oms ~ .,
                    data = trainTransformed,
@@ -111,43 +98,28 @@ smote_fit <- train(rehosp_oms ~ .,
                    verbose = FALSE,
                    metric = "ROC",
                    trControl = ctrl)
-```
-
-Balanceo con Árbol de Decisión:
-
-```{r, message = FALSE, echo = FALSE, eval =TRUE, warning=FALSE}
-# ctrl$sampling <- "smote"
-# 
-# model_dt <- train(rehosp_oms ~., 
-#                   data = trainTransformed,
-#                   method = "rpart", 
-#                   verbose = FALSE,
-#                   metric = "ROC",
-#                   trControl = ctrl)
-```
-
-Balanceo con Random Forest:
-
-```{r, message = FALSE, echo = FALSE, eval =TRUE, warning=FALSE}
-ctrl$sampling <- "smote"
 
 model_rf <- train(rehosp_oms ~., 
                   data = trainTransformed,
                   method = "rf", 
-                  verbose = FALSE,
                   metric = "ROC",
                   trControl = ctrl)
-```
-
-Balanceo con SVM:
-
-```{r, message = FALSE, echo = FALSE, eval =TRUE, warning=FALSE}
-ctrl$sampling <- "smote"
 
 model_svm <- train(rehosp_oms ~., 
                   data = trainTransformed,
                   method = "svmRadial", 
-                  verbose = FALSE,
+                  metric = "ROC",
+                  trControl = ctrl)
+
+model_svmpol <- train(rehosp_oms ~., 
+                  data = trainTransformed,
+                  method = "svmPoly", 
+                  metric = "ROC",
+                  trControl = ctrl)
+
+model_dt <- train(rehosp_oms ~., 
+                  data = trainTransformed,
+                  method = "rpart",
                   metric = "ROC",
                   trControl = ctrl)
 ```
@@ -155,13 +127,17 @@ model_svm <- train(rehosp_oms ~.,
 Obteniendo AUC para los 4 modelos:
 
 ```{r, message = FALSE, echo = FALSE, eval =TRUE, warning=FALSE}
-model_list <- list(original = orig_fit,
-                   SMOTE = smote_fit,
-                   random = model_rf,
-                   svm = model_svm)
+model_list <- list(GBM = orig_fit,
+                   GBM_SMOTE = smote_fit,
+                   Random = model_rf,
+                   SVMRadial = model_svm,
+                   SVMPoly = model_svmpol,
+                   Tree = model_dt)
 
 model_list_roc <- model_list %>%
-  map(test_roc, data = testTransformed)
+  map(test_roc, data = testTransformed, 
+      variable = "rehosp_oms",
+      positive_class = "si")
 
 model_list_roc %>%
   map(auc)
@@ -176,28 +152,53 @@ num_mod <- 1
 for(the_roc in model_list_roc){
   
   results_list_roc[[num_mod]] <- 
-    data.frame(tpr = the_roc$sensitivities,
-               fpr = 1 - the_roc$specificities,
-               model = names(model_list)[num_mod])
+    data.frame(TPR = the_roc$sensitivities,
+               FPR = 1 - the_roc$specificities,
+               Modelos = names(model_list)[num_mod])
   
   num_mod <- num_mod + 1
   
 }
 
-data
 results_df_roc <- bind_rows(results_list_roc)
 
 # Curva de ROC para los 4 modelos
+custom_col <- c("#7FFFD4", "#32CD32", "#00BFFF", "#008B8B", "#00008B")
 
-
-custom_col <- c("#000000", "#009E73", "#0072B2", "#D55E00")
-
-ggplot(aes(x = fpr,  y = tpr, group = model), data = results_df_roc) +
+ggplot(aes(x = fpr,  
+           y = tpr, 
+           group = model), 
+       data = results_df_roc) +
   geom_line(aes(color = model), size = 1) +
   scale_color_manual(values = custom_col) +
   geom_abline(intercept = 0, slope = 1, color = "gray", size = 1) +
-  theme_bw(base_size = 18)
+  theme_minimal()+
+  ggtitle("Curvas de ROC")+
+  theme(plot.title = element_text(hjust = 0.5))
 
 ```
 
+Después de obtenido el mejor modelo, vamos a realizar un ajuste en los hiperparámetros empleando Grid para identificar la combinación más optima. En lugar de especificar los valores exactos para cada parámetro de ajuste, podemos pedirle que utilice cualquier número de valores posibles para cada parámetro de ajuste a través de tuneLength, que se fijará en 10.
+
+```{r}
+
+set.seed(5627)
+
+orig_opt <- train(rehosp_oms ~ .,
+                  data = trainTransformed,
+                  method = "gbm",
+                  verbose = FALSE,
+                  metric = "ROC",
+                  trControl = ctrl, 
+                  tuneLength = 10)
+print(orig_opt)
+```
+
+```{r}
+plot(orig_opt)
+```
+
+```{r}
+confusionMatrix(predict(orig_fit,tes$Cos.code),dataset$Cos.code)
+```
 

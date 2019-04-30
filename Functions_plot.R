@@ -110,6 +110,24 @@ outlier <- function(mydata, value, q_min, q_max){
 }
 
 
-
+test_roc <- function(model, data, variable) {
+  
+  ##########################################################
+  ##########################################################
+  #### Est función permite construir las curvas de   #######
+  #### ROC para los distintos modelos ajustados      #######
+  #### el umbral utilizado es 0.5 (defecto)          #######
+  #### y la clase positiva es si/1/rehospitalización #######
+  #### Recibe los siguientes parámetros:             #######
+  #### model = modelo empleado                       #######
+  #### data = dataframe que será usado para validar  #######
+  #### variable = label o variable dependiente       #######
+  ##########################################################
+  ##########################################################
+  
+  roc(data[[variable]],
+      predict(model, data, type = "prob")[, "si"])
+  
+}
 
 
