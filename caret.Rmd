@@ -145,6 +145,8 @@ model_list_roc %>%
 
 Podemos examinar la curva ROC real para tener una mejor idea de dónde los modelos ponderados y de muestreo están superando o no, al modelo original en una variedad de umbrales de clasificación. Aquí, vemos que el modelo original parece dominar a los demás, el cual encuentra entre una tasa de falsos positivos entre el 0% y el 70%.
 
+La curva ROC no depende de la distribución de clase, lo que lo hace útil para evaluar clasificadores que predicen eventos raros como enfermedades o desastres. Por el contrario, la evaluación del rendimiento utilizando la precisión (TP + TN) / (TP + TN + FN + FP) favorecería a los clasificadores que siempre predicen un resultado negativo para la clase minoritaria.
+
 ```{r, message = FALSE, echo = FALSE, eval =TRUE, warning=FALSE}
 results_list_roc <- list(NA)
 num_mod <- 1
@@ -163,13 +165,13 @@ for(the_roc in model_list_roc){
 results_df_roc <- bind_rows(results_list_roc)
 
 # Curva de ROC para los 4 modelos
-custom_col <- c("#7FFFD4", "#32CD32", "#00BFFF", "#008B8B", "#00008B")
+custom_col <- c("#7FFFD4", "#32CD32", "#00BFFF", "#008B8B", "#00008B", "#4169E1")
 
-ggplot(aes(x = fpr,  
-           y = tpr, 
-           group = model), 
+ggplot(aes(x = FPR,  
+           y = TPR, 
+           group = Modelos), 
        data = results_df_roc) +
-  geom_line(aes(color = model), size = 1) +
+  geom_line(aes(color = Modelos), size = 1) +
   scale_color_manual(values = custom_col) +
   geom_abline(intercept = 0, slope = 1, color = "gray", size = 1) +
   theme_minimal()+
@@ -177,6 +179,9 @@ ggplot(aes(x = fpr,
   theme(plot.title = element_text(hjust = 0.5))
 
 ```
+
+
+
 
 Después de obtenido el mejor modelo, vamos a realizar un ajuste en los hiperparámetros empleando Grid para identificar la combinación más optima. En lugar de especificar los valores exactos para cada parámetro de ajuste, podemos pedirle que utilice cualquier número de valores posibles para cada parámetro de ajuste a través de tuneLength, que se fijará en 10.
 
@@ -199,6 +204,7 @@ plot(orig_opt)
 ```
 
 ```{r}
-confusionMatrix(predict(orig_fit,tes$Cos.code),dataset$Cos.code)
+test_predict <- predict(orig_fit, newdata = testTransformed) 
+confusionMatrix(reference = testTransformed$rehosp_oms, data = test_predictpredicted, positive = "si")
 ```
 

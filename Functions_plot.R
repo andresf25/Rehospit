@@ -110,7 +110,7 @@ outlier <- function(mydata, value, q_min, q_max){
 }
 
 
-test_roc <- function(model, data, variable) {
+test_roc <- function(model, data, variable, positive_class) {
   
   ##########################################################
   ##########################################################
@@ -126,7 +126,7 @@ test_roc <- function(model, data, variable) {
   ##########################################################
   
   roc(data[[variable]],
-      predict(model, data, type = "prob")[, "si"])
+      predict(model, data, type = "prob")[, positive_class])
   
 }
 
