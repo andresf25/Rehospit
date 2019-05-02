@@ -32,7 +32,7 @@ Dividiendo la información en validación (70) y prueba (30)
 
 ```{r, message = FALSE, echo = FALSE, eval =TRUE, warning=FALSE}
 set.seed(1234)
-index <- createDataPartition(model_rehosp$rehosp_oms, p = 0.70, list=FALSE)
+index <- createDataPartition(model_rehosp$rehosp_oms, p = 0.70, list = FALSE)
 train <- model_rehosp[ index,]
 test <- model_rehosp[-index,]
 ```
@@ -45,11 +45,13 @@ preProcValues <- preProcess(train, method = c("center", "scale"))
 trainTransformed <- predict(preProcValues, train)
 testTransformed <- predict(preProcValues, test)
 
-trainTransformed$rehosp_oms <- as.factor(train$rehosp_oms)
-testTransformed$rehosp_oms <- as.factor(test$rehosp_oms)
+trainTransformed$rehosp_oms <- relevel(as.factor(train$rehosp_oms), "1")
+testTransformed$rehosp_oms <- relevel(as.factor(test$rehosp_oms), "1")
 
-levels(trainTransformed$rehosp_oms) <- c("no", "si")
-levels(testTransformed$rehosp_oms) <- c("no", "si")
+levels(trainTransformed$rehosp_oms) <- c("si", "no")
+levels(testTransformed$rehosp_oms) <- c("si", "no")
+
+
 
 ```
 
@@ -68,24 +70,25 @@ orig_fit <- train(rehosp_oms ~ .,
                   data = trainTransformed,
                   method = "gbm",
                   verbose = FALSE,
-                  metric = "ROC",
+                  metric = "sens",
                   trControl = ctrl)
 ```
 
-El AUC se utilizará para evaluar el clasificador para evitar tener que tomar decisiones sobre el umbral de clasificación.
+Observando la matriz de confusión:
 
-```{r, message = FALSE, echo = FALSE, eval =TRUE, warning=FALSE}
-
-orig_fit %>%
-  test_roc(data = testTransformed, 
-           variable = "rehosp_oms", 
-           positive_class = "si") %>%
-  auc()
+```{r}
+confusionMatrix(reference = testTransformed$rehosp_oms, 
+                predict(orig_fit, 
+                        newdata = testTransformed))
 ```
 
-Ahora utilizando métodos de muestreo (SMOTE), compararémos el resultado anterior con el Gradient Boosting balanceado, un Árbol de Decisión, un Random Forest y una Máquina de Soporte Vectorial Radial, los cuales utilizan un límite de decisión no lineal.
+El desequilibrio en los datos, hace que el modelo sólo pueda predecir bien la clase minoritaria, por tanto, se empleará SMOTE como técnica de rebalanceo para incrementar con valores sintéticos el número de eventos raros (rehospitalizaciones)
+
+Compararémos el resultado anterior con el Gradient Boosting balanceado, un Árbol de Decisión, un Random Forest y una Máquina de Soporte Vectorial Radial, los cuales utilizan un límite de decisión no lineal.
 
 ```{r, message = FALSE, echo = FALSE, eval =TRUE, warning=FALSE}
+
+trainTransformed <- SMOTE(rehosp_oms ~ ., as.data.frame(trainTransformed), perc.over = 350, perc.under = 150)
 
 set.seed(5627)
 
@@ -96,31 +99,31 @@ smote_fit <- train(rehosp_oms ~ .,
                    data = trainTransformed,
                    method = "gbm",
                    verbose = FALSE,
-                   metric = "ROC",
+                   metric = "sens",
                    trControl = ctrl)
 
 model_rf <- train(rehosp_oms ~., 
                   data = trainTransformed,
                   method = "rf", 
-                  metric = "ROC",
+                  metric = "sens",
                   trControl = ctrl)
 
 model_svm <- train(rehosp_oms ~., 
                   data = trainTransformed,
                   method = "svmRadial", 
-                  metric = "ROC",
+                  metric = "sens",
                   trControl = ctrl)
 
 model_svmpol <- train(rehosp_oms ~., 
                   data = trainTransformed,
                   method = "svmPoly", 
-                  metric = "ROC",
+                  metric = "sens",
                   trControl = ctrl)
 
 model_dt <- train(rehosp_oms ~., 
                   data = trainTransformed,
                   method = "rpart",
-                  metric = "ROC",
+                  metric = "sens",
                   trControl = ctrl)
 ```
 
@@ -137,15 +140,15 @@ model_list <- list(GBM = orig_fit,
 model_list_roc <- model_list %>%
   map(test_roc, data = testTransformed, 
       variable = "rehosp_oms",
-      positive_class = "si")
+      positive_class = "si" )
 
 model_list_roc %>%
-  map(auc)
+  map(sens)
 ```
 
-Podemos examinar la curva ROC real para tener una mejor idea de dónde los modelos ponderados y de muestreo están superando o no, al modelo original en una variedad de umbrales de clasificación. Aquí, vemos que el modelo original parece dominar a los demás, el cual encuentra entre una tasa de falsos positivos entre el 0% y el 70%.
+Podemos examinar la curva ROC real para tener una mejor idea de dónde los modelos ponderados y de muestreo están superando o no, al modelo original en una variedad de umbrales de clasificación.
 
-La curva ROC no depende de la distribución de clase, lo que lo hace útil para evaluar clasificadores que predicen eventos raros como enfermedades o desastres. Por el contrario, la evaluación del rendimiento utilizando la precisión (TP + TN) / (TP + TN + FN + FP) favorecería a los clasificadores que siempre predicen un resultado negativo para la clase minoritaria.
+Una de las ventajas de la curva ROC no depende de la distribución de clase, lo que lo hace útil para evaluar clasificadores que predicen eventos raros como enfermedades o desastres. Por el contrario, la evaluación del rendimiento utilizando la precisión (TP + TN) / (TP + TN + FN + FP) favorecería a los clasificadores que siempre predicen un resultado negativo para la clase minoritaria.
 
 ```{r, message = FALSE, echo = FALSE, eval =TRUE, warning=FALSE}
 results_list_roc <- list(NA)
@@ -180,8 +183,7 @@ ggplot(aes(x = FPR,
 
 ```
 
-
-
+Aquí, vemos que el modelo original parece dominar a los demás, el cual encuentra entre una tasa de falsos positivos entre el 0% y el 70%.
 
 Después de obtenido el mejor modelo, vamos a realizar un ajuste en los hiperparámetros empleando Grid para identificar la combinación más optima. En lugar de especificar los valores exactos para cada parámetro de ajuste, podemos pedirle que utilice cualquier número de valores posibles para cada parámetro de ajuste a través de tuneLength, que se fijará en 10.
 
@@ -199,12 +201,41 @@ orig_opt <- train(rehosp_oms ~ .,
 print(orig_opt)
 ```
 
+
 ```{r}
 plot(orig_opt)
 ```
 
 ```{r}
-test_predict <- predict(orig_fit, newdata = testTransformed) 
-confusionMatrix(reference = testTransformed$rehosp_oms, data = test_predictpredicted, positive = "si")
+confusionMatrix(reference = testTransformed$rehosp_oms, predict(orig_fit, newdata = testTransformed), positive = "si")
 ```
 
+```{r}
+
+confusionMatrix(reference = testTransformed$rehosp_oms, predict(model_dt, newdata = testTransformed), positive = "si")
+
+# smote_fit,
+#                    Random = model_rf,
+#                    SVMRadial = model_svm,
+#                    SVMPoly = model_svmpol,
+#                    Tree = model_dt)
+```
+ 
+```{r}
+roc_p <- roc(response = testTransformed$rehosp_oms,
+             predictor = predict(orig_fit, newdata = testTransformed, type = "prob")[, "si"], 
+             levels= rev(levels(testTransformed$rehosp_oms)))
+
+predicted = predict(orig_fit, newdata = testTransformed, type = "prob")[, "si"]
+
+predicted <- as.data.frame(testTransformed$rehosp_oms, c(predicted))
+
+class(predicted)
+class(testTransformed$rehosp_oms)
+
+str(predicted)
+plot(roc_p, print.thres = "best")
+plot_pred_type_distribution (df = predicted, threshold = 0.7)
+```
+ 
+ 
