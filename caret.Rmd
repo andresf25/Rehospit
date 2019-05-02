@@ -87,14 +87,13 @@ El desequilibrio en los datos, hace que el modelo sólo pueda predecir bien la c
 Compararémos el resultado anterior con el Gradient Boosting balanceado, un Árbol de Decisión, un Random Forest y una Máquina de Soporte Vectorial Radial, los cuales utilizan un límite de decisión no lineal.
 
 ```{r, message = FALSE, echo = FALSE, eval =TRUE, warning=FALSE}
-
+set.seed(9560)
 trainTransformed <- SMOTE(rehosp_oms ~ ., as.data.frame(trainTransformed), perc.over = 350, perc.under = 150)
+```
 
+
+```{r, message = FALSE, echo = FALSE, eval =TRUE, warning=FALSE}
 set.seed(5627)
-
-ctrl$sampling <- "smote"
-
-
 smote_fit <- train(rehosp_oms ~ .,
                    data = trainTransformed,
                    method = "gbm",
@@ -102,25 +101,29 @@ smote_fit <- train(rehosp_oms ~ .,
                    metric = "sens",
                    trControl = ctrl)
 
-model_rf <- train(rehosp_oms ~., 
+set.seed(5627)
+model_rf <- train(rehosp_oms ~.,
                   data = trainTransformed,
-                  method = "rf", 
+                  method = "rf",
                   metric = "sens",
                   trControl = ctrl)
 
-model_svm <- train(rehosp_oms ~., 
+set.seed(5627)
+model_svm <- train(rehosp_oms ~.,
                   data = trainTransformed,
-                  method = "svmRadial", 
+                  method = "svmRadial",
                   metric = "sens",
                   trControl = ctrl)
 
-model_svmpol <- train(rehosp_oms ~., 
+set.seed(5627)
+model_svmpol <- train(rehosp_oms ~.,
                   data = trainTransformed,
-                  method = "svmPoly", 
+                  method = "svmPoly",
                   metric = "sens",
                   trControl = ctrl)
 
-model_dt <- train(rehosp_oms ~., 
+set.seed(5627)
+model_dt <- train(rehosp_oms ~.,
                   data = trainTransformed,
                   method = "rpart",
                   metric = "sens",
