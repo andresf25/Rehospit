@@ -135,6 +135,13 @@ model_svmpol <- readRDS("./model_svmpol.rds")
 #                   preProc = c("center", "scale"),
 #                   trControl = ctrl)
 model_dt <- readRDS("./model_dt.rds")
+
+# save the model to disk
+# saveRDS(smote_fit, "./smote_fit.rds")
+# saveRDS(model_rf, "./model_rf.rds")
+# saveRDS(model_svm, "./model_svm.rds")
+# saveRDS(model_svmpol, "./model_svmpol.rds")
+# saveRDS(model_dt, "./model_dt.rds")
 ```
 
 Para obtener estadísticas sobre sus diferencia de rendimiento se recopilan los resultados de la validación cruzada con la función resamples
