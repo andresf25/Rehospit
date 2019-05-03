@@ -90,46 +90,51 @@ El resultado el anterior se comparará contra el Gradient Boosting balanceado, u
 Tal como se hizo que en el caso anterior, para evaluar el poder predictivo del modelo se hará uso de la sensibilidad como métrica, la cual otorga el número de valores positivos predichos correctamente de todos los valores positivos, es decir, del total de casos de rehospitalización el porcentaje que efectivamente el modelo logra capturar como rehospitalizados; esta métrica, por tanto, cuantifica el total de falsos negativos (personas que se rehospitalizaron identificados incorrectamente como si no lo hubieran hecho).
 
 ```{r, message = FALSE, echo = FALSE, eval =TRUE, warning=FALSE}
-set.seed(5627)
-smote_fit <- train(rehosp_oms ~ .,
-                   data = trainTransformed,
-                   method = "gbm",
-                   verbose = FALSE,
-                   metric = "sens",
-                   preProc = c("center", "scale"),
-                   trControl = ctrl)
+# set.seed(5627)
+# smote_fit <- train(rehosp_oms ~ .,
+#                    data = trainTransformed,
+#                    method = "gbm",
+#                    verbose = FALSE,
+#                    metric = "sens",
+#                    preProc = c("center", "scale"),
+#                    trControl = ctrl)
+smote_fit <- readRDS("./smote_fit.rds")
 
-set.seed(5627)
-model_rf <- train(rehosp_oms ~.,
-                  data = trainTransformed,
-                  method = "rf",
-                  metric = "sens",
-                  preProc = c("center", "scale"),
-                  trControl = ctrl)
+# set.seed(5627)
+# model_rf <- train(rehosp_oms ~.,
+#                   data = trainTransformed,
+#                   method = "rf",
+#                   metric = "sens",
+#                   preProc = c("center", "scale"),
+#                   trControl = ctrl)
+model_rf <- readRDS("./model_rf.rds")
 
-set.seed(5627)
-model_svm <- train(rehosp_oms ~.,
-                  data = trainTransformed,
-                  method = "svmRadial",
-                  metric = "sens",
-                  preProc = c("center", "scale"),
-                  trControl = ctrl)
+# set.seed(5627)
+# model_svm <- train(rehosp_oms ~.,
+#                   data = trainTransformed,
+#                   method = "svmRadial",
+#                   metric = "sens",
+#                   preProc = c("center", "scale"),
+#                   trControl = ctrl)
+model_svm <- readRDS("./model_svm.rds")
 
-set.seed(5627)
-model_svmpol <- train(rehosp_oms ~.,
-                  data = trainTransformed,
-                  method = "svmPoly",
-                  metric = "sens",
-                  preProc = c("center", "scale"),
-                  trControl = ctrl)
+# set.seed(5627)
+# model_svmpol <- train(rehosp_oms ~.,
+#                   data = trainTransformed,
+#                   method = "svmPoly",
+#                   metric = "sens",
+#                   preProc = c("center", "scale"),
+#                   trControl = ctrl)
+model_svmpol <- readRDS("./model_svmpol.rds")
 
-set.seed(5627)
-model_dt <- train(rehosp_oms ~.,
-                  data = trainTransformed,
-                  method = "rpart",
-                  metric = "sens",
-                  preProc = c("center", "scale"),
-                  trControl = ctrl)
+# set.seed(5627)
+# model_dt <- train(rehosp_oms ~.,
+#                   data = trainTransformed,
+#                   method = "rpart",
+#                   metric = "sens",
+#                   preProc = c("center", "scale"),
+#                   trControl = ctrl)
+model_dt <- readRDS("./model_dt.rds")
 ```
 
 Para obtener estadísticas sobre sus diferencia de rendimiento se recopilan los resultados de la validación cruzada con la función resamples
