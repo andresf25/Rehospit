@@ -33,29 +33,23 @@ Dividiendo la información en validación (70) y prueba (30)
 ```{r, message = FALSE, echo = FALSE, eval =TRUE, warning=FALSE}
 set.seed(1234)
 index <- createDataPartition(model_rehosp$rehosp_oms, p = 0.70, list = FALSE)
-train <- model_rehosp[ index,]
-test <- model_rehosp[-index,]
+trainTransformed <- model_rehosp[ index,]
+testTransformed<- model_rehosp[-index,]
 ```
 
-Después de dividirse la data en entrenamiento y teniendo en cuenta que hay columnas numéricas con unidades de valor muy extremos, se procede a escalar las variables.
+Después de particionarse los datos se realizan algunas transformaciones para estructurar el formato, en algo aceptable para el paquete empleado; en ese sentido CARET para problemas de clasificación la variable de salida esté en factores y no permite que los niveles de las clases sean "0" o "1".
 
 ```{r, message = FALSE, echo = FALSE, eval =TRUE, warning=FALSE}
-preProcValues <- preProcess(train, method = c("center", "scale"))
 
-trainTransformed <- predict(preProcValues, train)
-testTransformed <- predict(preProcValues, test)
-
-trainTransformed$rehosp_oms <- relevel(as.factor(train$rehosp_oms), "1")
-testTransformed$rehosp_oms <- relevel(as.factor(test$rehosp_oms), "1")
+trainTransformed$rehosp_oms <- relevel(trainTransformed$rehosp_oms)
+testTransformed$rehosp_oms <- relevel(testTransformed$rehosp_oms)
 
 levels(trainTransformed$rehosp_oms) <- c("si", "no")
 levels(testTransformed$rehosp_oms) <- c("si", "no")
 
-
-
 ```
 
-Inicialmente se utilizará una máquina de aumento de gradiente (gbm), ya que puede manejar fácilmente las posibles interacciones y no linealidades que se han simulado anteriormente. Los hiperparámetros del modelo se ajustan mediante validación cruzada repetida en el conjunto de entrenamiento, repitiendo cinco veces con diez pliegues utilizados en cada repetición.
+Inicialmente se utilizará una máquina de aumento de gradiente (gbm), ya que puede manejar fácilmente las posibles interacciones y no linealidades que se han simulado anteriormente. Los hiperparámetros del modelo se ajustan mediante validación cruzada repetida en el conjunto de entrenamiento, repitiendo cinco veces con diez subconjuntos utilizados en cada repetición.
 
 ```{r, message = FALSE, echo = FALSE, eval =TRUE, warning=FALSE}
 ctrl <- trainControl(method = "repeatedcv",
@@ -71,26 +65,29 @@ orig_fit <- train(rehosp_oms ~ .,
                   method = "gbm",
                   verbose = FALSE,
                   metric = "sens",
+                  preProc = c("center", "scale"),
                   trControl = ctrl)
 ```
 
-Observando la matriz de confusión:
+A continuación, se realizarán las predicciones fuera de muestra y evaluando rendimiento a través de la matriz de confusión:
 
 ```{r}
-confusionMatrix(reference = testTransformed$rehosp_oms, 
-                predict(orig_fit, 
-                        newdata = testTransformed))
+predict_ori <- predict(orig_fit, 
+                       newdata = testTransformed)
+
+confusionMatrix(reference = testTransformed$rehosp_oms, predict_ori)
 ```
 
-El desequilibrio en los datos, hace que el modelo sólo pueda predecir bien la clase minoritaria, por tanto, se empleará SMOTE como técnica de rebalanceo para incrementar con valores sintéticos el número de eventos raros (rehospitalizaciones)
-
-Compararémos el resultado anterior con el Gradient Boosting balanceado, un Árbol de Decisión, un Random Forest y una Máquina de Soporte Vectorial Radial, los cuales utilizan un límite de decisión no lineal.
+El desequilibrio en los datos, hace que el modelo sólo pueda predecir bien la clase minoritaria, por tanto, se empleará SMOTE como técnica de rebalanceo para incrementar con valores sintéticos el número de eventos raros (rehospitalizaciones).
 
 ```{r, message = FALSE, echo = FALSE, eval =TRUE, warning=FALSE}
 set.seed(9560)
 trainTransformed <- SMOTE(rehosp_oms ~ ., as.data.frame(trainTransformed), perc.over = 350, perc.under = 150)
 ```
 
+El resultado el anterior se comparará contra el Gradient Boosting balanceado, un Árbol de Decisión, un Random Forest, una Máquina de Soporte Vectorial Radial y una Máquina de Soporte Vertorial Polynomial, los cuales, al igual que el GBM utilizan un límite de decisión no lineal. 
+
+Tal como se hizo que en el caso anterior, para evaluar el poder predictivo del modelo se hará uso de la sensibilidad como métrica, la cual otorga el número de valores positivos predichos correctamente de todos los valores positivos, es decir, del total de casos de rehospitalización el porcentaje que efectivamente el modelo logra capturar como rehospitalizados; esta métrica, por tanto, cuantifica el total de falsos negativos (personas que se rehospitalizaron identificados incorrectamente como si no lo hubieran hecho).
 
 ```{r, message = FALSE, echo = FALSE, eval =TRUE, warning=FALSE}
 set.seed(5627)
@@ -99,6 +96,7 @@ smote_fit <- train(rehosp_oms ~ .,
                    method = "gbm",
                    verbose = FALSE,
                    metric = "sens",
+                   preProc = c("center", "scale"),
                    trControl = ctrl)
 
 set.seed(5627)
@@ -106,6 +104,7 @@ model_rf <- train(rehosp_oms ~.,
                   data = trainTransformed,
                   method = "rf",
                   metric = "sens",
+                  preProc = c("center", "scale"),
                   trControl = ctrl)
 
 set.seed(5627)
@@ -113,6 +112,7 @@ model_svm <- train(rehosp_oms ~.,
                   data = trainTransformed,
                   method = "svmRadial",
                   metric = "sens",
+                  preProc = c("center", "scale"),
                   trControl = ctrl)
 
 set.seed(5627)
@@ -120,6 +120,7 @@ model_svmpol <- train(rehosp_oms ~.,
                   data = trainTransformed,
                   method = "svmPoly",
                   metric = "sens",
+                  preProc = c("center", "scale"),
                   trControl = ctrl)
 
 set.seed(5627)
@@ -127,12 +128,13 @@ model_dt <- train(rehosp_oms ~.,
                   data = trainTransformed,
                   method = "rpart",
                   metric = "sens",
+                  preProc = c("center", "scale"),
                   trControl = ctrl)
 ```
 
-Obteniendo AUC para los 4 modelos:
+Para obtener estadísticas sobre sus diferencia de rendimiento se recopilan los resultados de la validación cruzada con la función resamples
 
-```{r, message = FALSE, echo = FALSE, eval =TRUE, warning=FALSE}
+```{r}
 model_list <- list(GBM = orig_fit,
                    GBM_SMOTE = smote_fit,
                    Random = model_rf,
@@ -140,13 +142,22 @@ model_list <- list(GBM = orig_fit,
                    SVMPoly = model_svmpol,
                    Tree = model_dt)
 
-model_list_roc <- model_list %>%
-  map(test_roc, data = testTransformed, 
-      variable = "rehosp_oms",
-      positive_class = "si" )
+result_cv <- resamples(list(model_list))
 
-model_list_roc %>%
-  map(sens)
+summary(result_cv)
+```
+
+Observando las distribuciones obtenidas con el remuestreo:
+
+```{r}
+bwplot(resamps, layout = c(3, 2))
+```
+
+Dado que los modelos se ajustan a las mismas versiones de los datos de entrenamiento, tiene sentido hacer inferencias sobre las diferencias entre los modelos. De esta manera, se puede llegar a calcular incluso, no sólo las diferencias sino también, usar una prueba t para evaluar la hipótesis nula de que no hay diferencia entre los modelos.
+
+```{r}
+difValues <- diff(resamps)
+summary(difValues)
 ```
 
 Podemos examinar la curva ROC real para tener una mejor idea de dónde los modelos ponderados y de muestreo están superando o no, al modelo original en una variedad de umbrales de clasificación.
