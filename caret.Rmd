@@ -12,6 +12,8 @@ library(randomForest)
 library(e1071)
 library(purrr)
 library(dplyr)
+library(DMwR)
+library(lattice)
 load("data_rehosp.rda")
 ```
 
@@ -41,8 +43,8 @@ Después de particionarse los datos se realizan algunas transformaciones para es
 
 ```{r, message = FALSE, echo = FALSE, eval =TRUE, warning=FALSE}
 
-trainTransformed$rehosp_oms <- relevel(trainTransformed$rehosp_oms)
-testTransformed$rehosp_oms <- relevel(testTransformed$rehosp_oms)
+trainTransformed$rehosp_oms <- relevel(as.factor(trainTransformed$rehosp_oms),"1")
+testTransformed$rehosp_oms <- relevel(as.factor(testTransformed$rehosp_oms), "1")
 
 levels(trainTransformed$rehosp_oms) <- c("si", "no")
 levels(testTransformed$rehosp_oms) <- c("si", "no")
@@ -67,12 +69,16 @@ orig_fit <- train(rehosp_oms ~ .,
                   metric = "sens",
                   preProc = c("center", "scale"),
                   trControl = ctrl)
+
+saveRDS(orig_fit, "./orig_fit.rds")
+
+orig_fit <- readRDS("./orig_fit.rds")
 ```
 
 A continuación, se realizarán las predicciones fuera de muestra y evaluando rendimiento a través de la matriz de confusión:
 
 ```{r}
-predict_ori <- predict(orig_fit, 
+predict_ori <- predict(model_svm, 
                        newdata = testTransformed)
 
 confusionMatrix(reference = testTransformed$rehosp_oms, predict_ori)
@@ -90,63 +96,61 @@ El resultado el anterior se comparará contra el Gradient Boosting balanceado, u
 Tal como se hizo que en el caso anterior, para evaluar el poder predictivo del modelo se hará uso de la sensibilidad como métrica, la cual otorga el número de valores positivos predichos correctamente de todos los valores positivos, es decir, del total de casos de rehospitalización el porcentaje que efectivamente el modelo logra capturar como rehospitalizados; esta métrica, por tanto, cuantifica el total de falsos negativos (personas que se rehospitalizaron identificados incorrectamente como si no lo hubieran hecho).
 
 ```{r, message = FALSE, echo = FALSE, eval =TRUE, warning=FALSE}
-# set.seed(5627)
-# smote_fit <- train(rehosp_oms ~ .,
-#                    data = trainTransformed,
-#                    method = "gbm",
-#                    verbose = FALSE,
-#                    metric = "sens",
-#                    preProc = c("center", "scale"),
-#                    trControl = ctrl)
+set.seed(5627)
+smote_fit <- train(rehosp_oms ~ .,
+                   data = trainTransformed,
+                   method = "gbm",
+                   verbose = FALSE,
+                   metric = "Roc",
+                   preProc = c("center", "scale"),
+                   trControl = ctrl)
 smote_fit <- readRDS("./smote_fit.rds")
 
-# set.seed(5627)
-# model_rf <- train(rehosp_oms ~.,
-#                   data = trainTransformed,
-#                   method = "rf",
-#                   metric = "sens",
-#                   preProc = c("center", "scale"),
-#                   trControl = ctrl)
+set.seed(5627)
+model_rf <- train(rehosp_oms ~.,
+                  data = trainTransformed,
+                  method = "rf",
+                  metric = "Roc",
+                  preProc = c("center", "scale"),
+                  trControl = ctrl)
 model_rf <- readRDS("./model_rf.rds")
 
-# set.seed(5627)
-# model_svm <- train(rehosp_oms ~.,
-#                   data = trainTransformed,
-#                   method = "svmRadial",
-#                   metric = "sens",
-#                   preProc = c("center", "scale"),
-#                   trControl = ctrl)
+set.seed(5627)
+model_svm <- train(rehosp_oms ~.,
+                  data = trainTransformed,
+                  method = "svmRadial",
+                  metric = "Roc",
+                  preProc = c("center", "scale"),
+                  trControl = ctrl)
 model_svm <- readRDS("./model_svm.rds")
 
-# set.seed(5627)
-# model_svmpol <- train(rehosp_oms ~.,
-#                   data = trainTransformed,
-#                   method = "svmPoly",
-#                   metric = "sens",
-#                   preProc = c("center", "scale"),
-#                   trControl = ctrl)
+set.seed(5627)
+model_svmpol <- train(rehosp_oms ~.,
+                  data = trainTransformed,
+                  method = "svmPoly",
+                  metric = "Roc",
+                  preProc = c("center", "scale"),
+                  trControl = ctrl)
 model_svmpol <- readRDS("./model_svmpol.rds")
 
-# set.seed(5627)
-# model_dt <- train(rehosp_oms ~.,
-#                   data = trainTransformed,
-#                   method = "rpart",
-#                   metric = "sens",
-#                   preProc = c("center", "scale"),
-#                   trControl = ctrl)
+set.seed(5627)
+model_dt <- train(rehosp_oms ~.,
+                  data = trainTransformed,
+                  method = "rpart",
+                  metric = "Roc",
+                  trControl = ctrl)
 model_dt <- readRDS("./model_dt.rds")
 
-# save the model to disk
-# saveRDS(smote_fit, "./smote_fit.rds")
-# saveRDS(model_rf, "./model_rf.rds")
-# saveRDS(model_svm, "./model_svm.rds")
-# saveRDS(model_svmpol, "./model_svmpol.rds")
-# saveRDS(model_dt, "./model_dt.rds")
+saveRDS(smote_fit, "./smote_fit.rds")
+saveRDS(model_rf, "./model_rf.rds")
+saveRDS(model_svm, "./model_svm.rds")
+saveRDS(model_svmpol, "./model_svmpol.rds")
+saveRDS(model_dt, "./model_dt.rds")
 ```
 
 Para obtener estadísticas sobre sus diferencia de rendimiento se recopilan los resultados de la validación cruzada con la función resamples
 
-```{r}
+```{r, message = FALSE, echo = FALSE, eval =TRUE, warning=FALSE}
 model_list <- list(GBM = orig_fit,
                    GBM_SMOTE = smote_fit,
                    Random = model_rf,
@@ -154,21 +158,21 @@ model_list <- list(GBM = orig_fit,
                    SVMPoly = model_svmpol,
                    Tree = model_dt)
 
-result_cv <- resamples(list(model_list))
+result_cv <- resamples(model_list)
 
 summary(result_cv)
 ```
 
 Observando las distribuciones obtenidas con el remuestreo:
 
-```{r}
-bwplot(resamps, layout = c(3, 2))
+```{r, message = FALSE, echo = FALSE, eval =TRUE, warning=FALSE, fig.width=9, fig.height=5}
+bwplot(result_cv, layout = c(3, 1))
 ```
 
 Dado que los modelos se ajustan a las mismas versiones de los datos de entrenamiento, tiene sentido hacer inferencias sobre las diferencias entre los modelos. De esta manera, se puede llegar a calcular incluso, no sólo las diferencias sino también, usar una prueba t para evaluar la hipótesis nula de que no hay diferencia entre los modelos.
 
 ```{r}
-difValues <- diff(resamps)
+difValues <- diff(result_cv)
 summary(difValues)
 ```
 
@@ -177,6 +181,15 @@ Podemos examinar la curva ROC real para tener una mejor idea de dónde los model
 Una de las ventajas de la curva ROC no depende de la distribución de clase, lo que lo hace útil para evaluar clasificadores que predicen eventos raros como enfermedades o desastres. Por el contrario, la evaluación del rendimiento utilizando la precisión (TP + TN) / (TP + TN + FN + FP) favorecería a los clasificadores que siempre predicen un resultado negativo para la clase minoritaria.
 
 ```{r, message = FALSE, echo = FALSE, eval =TRUE, warning=FALSE}
+
+model_list_roc <- model_list %>%
+  map(test_roc, data = testTransformed, 
+      variable = "rehosp_oms", 
+      positive_class = "si")
+
+model_list_roc %>%
+  map(auc)
+
 results_list_roc <- list(NA)
 num_mod <- 1
 
@@ -215,53 +228,36 @@ Después de obtenido el mejor modelo, vamos a realizar un ajuste en los hiperpar
 
 ```{r}
 
+fitControl <- trainControl(method = "repeatedcv",
+                           number = 10,
+                           repeats = 5,
+                           classProbs = TRUE,
+                           summaryFunction = twoClassSummary)
+
+
 set.seed(5627)
+rda_fit <- train(rehosp_oms ~ ., 
+                 data = trainTransformed, 
+                 method = "svmRadial",
+                 metric = "ROC",
+                 preProc = c("center", "scale"),
+                 tuneLength = 10,
+                 trControl = fitControl) 
 
-orig_opt <- train(rehosp_oms ~ .,
-                  data = trainTransformed,
-                  method = "gbm",
-                  verbose = FALSE,
-                  metric = "ROC",
-                  trControl = ctrl, 
-                  tuneLength = 10)
-print(orig_opt)
-```
-
-
-```{r}
-plot(orig_opt)
+print(rda_fit)
+                 
 ```
 
 ```{r}
-confusionMatrix(reference = testTransformed$rehosp_oms, predict(orig_fit, newdata = testTransformed), positive = "si")
+ggplot(rda_fit) +
+  theme_minimal() + 
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "up")
 ```
 
 ```{r}
-
-confusionMatrix(reference = testTransformed$rehosp_oms, predict(model_dt, newdata = testTransformed), positive = "si")
-
-# smote_fit,
-#                    Random = model_rf,
-#                    SVMRadial = model_svm,
-#                    SVMPoly = model_svmpol,
-#                    Tree = model_dt)
+confusionMatrix(reference = testTransformed$rehosp_oms, predict(rda_fit, newdata = testTransformed), positive = "si")
 ```
- 
-```{r}
-roc_p <- roc(response = testTransformed$rehosp_oms,
-             predictor = predict(orig_fit, newdata = testTransformed, type = "prob")[, "si"], 
-             levels= rev(levels(testTransformed$rehosp_oms)))
 
-predicted = predict(orig_fit, newdata = testTransformed, type = "prob")[, "si"]
 
-predicted <- as.data.frame(testTransformed$rehosp_oms, c(predicted))
-
-class(predicted)
-class(testTransformed$rehosp_oms)
-
-str(predicted)
-plot(roc_p, print.thres = "best")
-plot_pred_type_distribution (df = predicted, threshold = 0.7)
-```
  
  
